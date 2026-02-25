@@ -28,11 +28,19 @@ CCSprite* createIconSprite(std::string const& name) {
 
 void TextureUtils::setObjIcon(EffectGameObject* obj, const std::string& texture) {
     if (!obj) return;
-    if (auto newSpr = CCSprite::create(texture.c_str())) {
-        obj->m_addToNodeContainer = true;
-        obj->setTexture(newSpr->getTexture());
-        obj->setTextureRect(newSpr->getTextureRect());
-    }
+
+    auto newSpr = CCSprite::create(texture.c_str());
+    if (!newSpr) return;
+
+    auto tex = newSpr->getTexture();
+    if (!tex) return;
+
+    auto rect = newSpr->getTextureRect();
+    if (rect.size.width <= 0.f || rect.size.height <= 0.f) return;
+
+    obj->m_addToNodeContainer = true;
+    obj->setTexture(tex);
+    obj->setTextureRect(rect);
 }
 
 static std::optional<int> getIntKey(GameObject* obj, int key) {
@@ -76,7 +84,7 @@ using DynamicSettings = TextureUtils::DynamicSettings;
 using CacheKey = std::uint64_t;
 
 static std::unordered_map<CacheKey, std::uint64_t> s_dynamicCache;
-static std::unordered_set<EffectGameObject*> s_dirtyObjects;
+static std::unordered_set<CacheKey> s_dirtyObjects;
 static bool s_hasLastSettings = false;
 static DynamicSettings s_lastSettings{};
 
@@ -192,8 +200,8 @@ static std::uint64_t sigStart(EffectGameObject* obj, const DynamicSettings&) {
 static std::uint64_t sigStopTexture(EffectGameObject* obj, const DynamicSettings&) {
     int variant = 0;
 
-    if(auto v = getIntKey(obj, 580); *v == 1) variant = 1;
-    else if(auto v = getIntKey(obj, 580); *v == 2) variant = 2;
+    if (auto v = getIntKey(obj, 580); v && *v == 1) variant = 1;
+    else if (auto v = getIntKey(obj, 580); v && *v == 2) variant = 2;
     
     std::uint64_t sig = static_cast<std::uint64_t>(obj->m_objectID);
     return hashCombine(sig, static_cast<std::uint64_t>(variant + 1));
@@ -243,7 +251,7 @@ static std::uint64_t sigColis(EffectGameObject* obj, const DynamicSettings&) {
 static std::uint64_t sigSpawn(EffectGameObject* obj, const DynamicSettings&) {
     int variant = 0;
     auto remap = getIntKey(obj, 442);
-    if (remap > 0) {
+    if (remap && *remap > 0) {
         variant = 1;
     }
 
@@ -448,9 +456,8 @@ void TextureUtils::updateStopTexture(EffectGameObject* obj) {
     if (!obj) return;
     const char* tex = "stop.png"_spr;
 
-    if(auto v = getIntKey(obj, 580); *v == 1) tex = "pause.png"_spr;
-
-    else if(auto v = getIntKey(obj, 580); *v == 2) tex = "resume.png"_spr;
+    if (auto v = getIntKey(obj, 580); v && *v == 1) tex = "pause.png"_spr;
+    else if (auto v = getIntKey(obj, 580); v && *v == 2) tex = "resume.png"_spr;
     
     setObjIcon(obj, tex);
 }
@@ -515,7 +522,7 @@ void TextureUtils::updateSpawnTexture(EffectGameObject* obj) {
 
     auto remap = getIntKey(obj, 442);
     
-    if (remap > 0) {
+    if (remap && *remap > 0) {
         tex = "spawn_remap.png"_spr;
     }
 
@@ -593,19 +600,17 @@ void TextureUtils::updateOffsetCamTexture(CameraTriggerGameObject* obj, bool col
 void TextureUtils::updateRotateCamTexture(CameraTriggerGameObject* obj, bool color) {
     if (!obj) return;
 
-    const char* tex;
+    const char* tex = color ? "rotatecam.png"_spr : "crotate.png"_spr;
+
     if (color) {
-        if (obj->m_rotationDegrees >= 0.f)
-            tex = "rotatecam.png"_spr;
         if (obj->m_rotationDegrees < 0.f)
             tex = "rotatecamR.png"_spr;
     }
     else {
-        if (obj->m_rotationDegrees >= 0.f)
-            tex = "crotate.png"_spr;
         if (obj->m_rotationDegrees < 0.f)
             tex = "crotateR.png"_spr;
     }
+
     setObjIcon(obj, tex);
 }
 
@@ -924,8 +929,13 @@ void TextureUtils::applyDynamicChangesGlobal() {
     } 
     
     else {
-        for (auto obj : s_dirtyObjects) {
-            if (obj) applyDynamicUpdatesCached(obj, settings);
+        Ref<CCArray> arr = lel->m_objects;
+        for (auto obj : CCArrayExt<EffectGameObject*>(arr)) {
+            if (!obj) continue;
+            auto key = makeCacheKey(obj);
+            if (!key) continue;
+            if (s_dirtyObjects.find(key) == s_dirtyObjects.end()) continue;
+            applyDynamicUpdatesCached(obj, settings);
         }
     }
 
@@ -934,7 +944,9 @@ void TextureUtils::applyDynamicChangesGlobal() {
 
 void TextureUtils::markDynamicDirty(EffectGameObject* obj) {
     if (!obj) return;
-    s_dirtyObjects.insert(obj);
+    auto key = makeCacheKey(obj);
+    if (!key) return;
+    s_dirtyObjects.insert(key);
 }
 
 void TextureUtils::markDynamicDirty(CCArray* objects) {
