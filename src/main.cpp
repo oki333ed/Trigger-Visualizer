@@ -218,18 +218,22 @@ class $modify(ShowDynamic, EditorUI) {
 };
 
 $execute {
-    listenForSettingChanges<bool>("dyn-enable", [](bool value) {
-        TV_TRACE("setting change dyn-enable={}", value);
-        if (value) {
-            TextureUtils::clearDynamicCache();
-            TextureUtils::applyDynamicChangesGlobal();
-            TV_TRACE("setting dyn-enable handled enable-path");
-        } else {
-            resetDynamicIcons();
-            TextureUtils::clearDynamicCache();
-            TV_TRACE("setting dyn-enable handled disable-path");
-        }
-    }, Mod::get());
+    if (auto mod = Mod::get()) {
+        listenForSettingChanges<bool>("dyn-enable", [](bool value) {
+            TV_TRACE("setting change dyn-enable={}", value);
+            if (value) {
+                TextureUtils::clearDynamicCache();
+                TextureUtils::applyDynamicChangesGlobal();
+                TV_TRACE("setting dyn-enable handled enable-path");
+            } else {
+                resetDynamicIcons();
+                TextureUtils::clearDynamicCache();
+                TV_TRACE("setting dyn-enable handled disable-path");
+            }
+        }, mod);
+    } else {
+        TV_TRACE("skip dyn-enable listener registration reason=no-current-mod");
+    }
 }
 
 

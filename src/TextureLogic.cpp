@@ -21,10 +21,14 @@ bool TextureUtils::g_isToolboxInit = false;
 
 CCSprite* createIconSprite(std::string const& name) {
     TV_TRACE("createIconSprite begin name='{}'", name);
-    auto modPath = Mod::get()->expandSpriteName(name.c_str());
-    if (auto spr = CCSprite::create(std::string(modPath).c_str())) {
-        TV_TRACE("createIconSprite success source=mod-path name='{}'", name);
-        return spr;
+    if (auto mod = Mod::get()) {
+        auto modPath = mod->expandSpriteName(name.c_str());
+        if (auto spr = CCSprite::create(std::string(modPath).c_str())) {
+            TV_TRACE("createIconSprite success source=mod-path name='{}'", name);
+            return spr;
+        }
+    } else {
+        TV_TRACE("createIconSprite skip mod-path reason=no-current-mod");
     }
     if (auto spr = CCSprite::createWithSpriteFrameName(name.c_str())) {
         TV_TRACE("createIconSprite success source=frame name='{}'", name);
