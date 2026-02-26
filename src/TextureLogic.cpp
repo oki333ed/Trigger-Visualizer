@@ -998,56 +998,57 @@ void TextureUtils::clearDynamicCache() {
 
 const std::unordered_map<int, std::pair<std::string, std::string>>& TextureUtils::getIconMap() {
     static const std::unordered_map<int, std::pair<std::string, std::string>> iconMap = {
-    // SHADER
-    {2904, {"shader.png"_spr, "do-shader"}}, {2905, {"shock.png"_spr, "do-shader"}},
-    {2907, {"line.png"_spr, "do-shader"}}, {2909, {"glitch.png"_spr, "do-shader"}},
-    {2910, {"chromatic.png"_spr, "do-shader"}}, {2911, {"chrglitch.png"_spr, "do-shader"}},
-    {2912, {"pixelate.png"_spr, "do-shader"}}, {2913, {"circles.png"_spr, "do-shader"}},
-    {2914, {"radial.png"_spr, "do-shader"}}, {2915, {"motion.png"_spr, "do-shader"}},
-    {2916, {"bulge.png"_spr, "do-shader"}}, {2917, {"pinch.png"_spr, "do-shader"}},
-    {2919, {"blind.png"_spr, "do-shader"}}, {2920, {"sepia.png"_spr, "do-shader"}},
-    {2921, {"negative.png"_spr, "do-shader"}}, {2922, {"hue.png"_spr, "do-shader"}},
-    {2923, {"color.png"_spr, "do-shader"}}, {2924, {"screen.png"_spr, "do-shader"}},
-    
-    // DEFAULT
-    {901, {"move.png"_spr, "do-default"}}, {1006, {"pulse.png"_spr, "do-default"}},
-    {1007, {"alpha.png"_spr, "do-default"}}, {1346, {"rotate.png"_spr, "do-default"}},
-    {2067, {"scale.png"_spr, "do-default"}}, {1585, {"animate.png"_spr, "do-default"}},
-    {3016, {"advfollow.png"_spr, "do-default"}}, {3660, {"editadv.png"_spr, "do-default"}},
-    {3661, {"target.png"_spr, "do-default"}}, {1814, {"followy.png"_spr, "do-default"}},
-    {1935, {"timewarp.png"_spr, "do-default"}}, {1932, {"control.png"_spr, "do-default"}},
-    {2999, {"mg.png"_spr, "do-default"}}, {3606, {"bgs.png"_spr, "do-default"}},
-    {3612, {"mgs.png"_spr, "do-default"}}, {3613, {"ui.png"_spr, "do-default"}},
-    {2899, {"options.png"_spr, "do-default"}}, {3602, {"sfx.png"_spr, "do-default"}},
-    {3603, {"esfx.png"_spr, "do-default"}}, {3600, {"end.png"_spr, "do-default"}},
-    {2901, {"gpoff.png"_spr, "do-default"}}, {1917, {"reverse.png"_spr, "do-default"}},
-    {1934, {"song.png"_spr, "do-default"}}, {3605, {"editsong.png"_spr, "do-default"}},
-    {3029, {"bgc.png"_spr, "do-default"}}, {3030, {"gc.png"_spr, "do-default"}},
-    {3031, {"mgc.png"_spr, "do-default"}}, {3604, {"ev.png"_spr, "do-default"}},
-    {2066, {"gravity_low.png"_spr, "do-default"}},
-    // LOGIC
-    {1616, {"stop.png"_spr, "do-logic"}}, {1817, {"pickup.png"_spr, "do-logic"}},
-    {1268, {"spawn.png"_spr, "do-logic"}}, {1347, {"follow.png"_spr, "do-logic"}},
-    {1912, {"random.png"_spr, "do-logic"}}, {2068, {"advrandom.png"_spr, "do-logic"}},
-    {1611, {"count.png"_spr, "do-logic"}}, {1811, {"advcount.png"_spr, "do-logic"}},
-    {1595, {"touch.png"_spr, "do-logic"}}, {3619, {"edit.png"_spr, "do-logic"}},
-    {3620, {"comp.png"_spr, "do-logic"}}, {3641, {"pers.png"_spr, "do-logic"}},
-    {1812, {"dead.png"_spr, "do-logic"}}, {1815, {"colis.png"_spr, "do-logic"}},
-    {3609, {"advcolis.png"_spr, "do-logic"}},
+        // SHADER
+        {2904, {"shader.png", "do-shader"}}, {2905, {"shock.png", "do-shader"}},
+        {2907, {"line.png", "do-shader"}}, {2909, {"glitch.png", "do-shader"}},
+        {2910, {"chromatic.png", "do-shader"}}, {2911, {"chrglitch.png", "do-shader"}},
+        {2912, {"pixelate.png", "do-shader"}}, {2913, {"circles.png", "do-shader"}},
+        {2914, {"radial.png", "do-shader"}}, {2915, {"motion.png", "do-shader"}},
+        {2916, {"bulge.png", "do-shader"}}, {2917, {"pinch.png", "do-shader"}},
+        {2919, {"blind.png", "do-shader"}}, {2920, {"sepia.png", "do-shader"}},
+        {2921, {"negative.png", "do-shader"}}, {2922, {"hue.png", "do-shader"}},
+        {2923, {"color.png", "do-shader"}}, {2924, {"screen.png", "do-shader"}},
 
-    // AREA
-    {3006, {"amove.png"_spr, "do-area"}}, {3007, {"arotate.png"_spr, "do-area"}},
-    {3008, {"ascale.png"_spr, "do-area"}}, {3009, {"aalpha.png"_spr, "do-area"}},
-    {3010, {"apulse.png"_spr, "do-area"}}, {3011, {"eamove.png"_spr, "do-area"}},
-    {3012, {"earotate.png"_spr, "do-area"}}, {3013, {"eascale.png"_spr, "do-area"}},
-    {3014, {"eaalpha.png"_spr, "do-area"}}, {3015, {"eapulse.png"_spr, "do-area"}},
-    {3017, {"emove.png"_spr, "do-area"}}, {3018, {"erotate.png"_spr, "do-area"}},
-    {3019, {"escale.png"_spr, "do-area"}}, {3020, {"ealpha.png"_spr, "do-area"}},
-    {3021, {"epulse.png"_spr, "do-area"}},
+        // DEFAULT
+        {901, {"move.png", "do-default"}}, {1006, {"pulse.png", "do-default"}},
+        {1007, {"alpha.png", "do-default"}}, {1346, {"rotate.png", "do-default"}},
+        {2067, {"scale.png", "do-default"}}, {1585, {"animate.png", "do-default"}},
+        {3016, {"advfollow.png", "do-default"}}, {3660, {"editadv.png", "do-default"}},
+        {3661, {"target.png", "do-default"}}, {1814, {"followy.png", "do-default"}},
+        {1935, {"timewarp.png", "do-default"}}, {1932, {"control.png", "do-default"}},
+        {2999, {"mg.png", "do-default"}}, {3606, {"bgs.png", "do-default"}},
+        {3612, {"mgs.png", "do-default"}}, {3613, {"ui.png", "do-default"}},
+        {2899, {"options.png", "do-default"}}, {3602, {"sfx.png", "do-default"}},
+        {3603, {"esfx.png", "do-default"}}, {3600, {"end.png", "do-default"}},
+        {2901, {"gpoff.png", "do-default"}}, {1917, {"reverse.png", "do-default"}},
+        {1934, {"song.png", "do-default"}}, {3605, {"editsong.png", "do-default"}},
+        {3029, {"bgc.png", "do-default"}}, {3030, {"gc.png", "do-default"}},
+        {3031, {"mgc.png", "do-default"}}, {3604, {"ev.png", "do-default"}},
+        {2066, {"gravity_low.png", "do-default"}},
 
-    // COLIS
-    {3640, {"colisin.png"_spr, "do-colis"}}, {1816, {"colisblock.png"_spr, "do-colis"}},
-        {3643, {"colistouch.png"_spr, "do-colis"}}
+        // LOGIC
+        {1616, {"stop.png", "do-logic"}}, {1817, {"pickup.png", "do-logic"}},
+        {1268, {"spawn.png", "do-logic"}}, {1347, {"follow.png", "do-logic"}},
+        {1912, {"random.png", "do-logic"}}, {2068, {"advrandom.png", "do-logic"}},
+        {1611, {"count.png", "do-logic"}}, {1811, {"advcount.png", "do-logic"}},
+        {1595, {"touch.png", "do-logic"}}, {3619, {"edit.png", "do-logic"}},
+        {3620, {"comp.png", "do-logic"}}, {3641, {"pers.png", "do-logic"}},
+        {1812, {"dead.png", "do-logic"}}, {1815, {"colis.png", "do-logic"}},
+        {3609, {"advcolis.png", "do-logic"}},
+
+        // AREA
+        {3006, {"amove.png", "do-area"}}, {3007, {"arotate.png", "do-area"}},
+        {3008, {"ascale.png", "do-area"}}, {3009, {"aalpha.png", "do-area"}},
+        {3010, {"apulse.png", "do-area"}}, {3011, {"eamove.png", "do-area"}},
+        {3012, {"earotate.png", "do-area"}}, {3013, {"eascale.png", "do-area"}},
+        {3014, {"eaalpha.png", "do-area"}}, {3015, {"eapulse.png", "do-area"}},
+        {3017, {"emove.png", "do-area"}}, {3018, {"erotate.png", "do-area"}},
+        {3019, {"escale.png", "do-area"}}, {3020, {"ealpha.png", "do-area"}},
+        {3021, {"epulse.png", "do-area"}},
+
+        // COLIS
+        {3640, {"colisin.png", "do-colis"}}, {1816, {"colisblock.png", "do-colis"}},
+        {3643, {"colistouch.png", "do-colis"}}
     };
     return iconMap;
 }

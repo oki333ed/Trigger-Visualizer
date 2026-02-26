@@ -60,6 +60,10 @@ class $modify(MyEffectGameObject, EffectGameObject) {
     void customSetup() {
         EffectGameObject::customSetup();
 
+        // This mod is editor-focused. Skip all texture swaps outside editor
+        // scenes to avoid startup/gameplay crashes on mobile.
+        if (!Mod::get() || !LevelEditorLayer::get()) return;
+
         int id = m_objectID;
 
         auto const& iconMap = TextureUtils::getIconMap();
@@ -188,11 +192,11 @@ class $modify(MySetupTriggerPopup, SetupTriggerPopup) {
         auto gameObject = this->m_gameObject;
         auto gameObjects = this->m_gameObjects;
 
+        SetupTriggerPopup::onClose(sender);
+
         TextureUtils::markDynamicDirty(gameObject);
         TextureUtils::markDynamicDirty(gameObjects);
         TextureUtils::applyDynamicChangesGlobal();
-
-        SetupTriggerPopup::onClose(sender);
     }
 };
 
@@ -201,11 +205,11 @@ class $modify(MySetupCameraOffsetTrigger, SetupCameraOffsetTrigger) {
         auto gameObject = this->m_gameObject;
         auto gameObjects = this->m_gameObjects;
 
+        SetupCameraOffsetTrigger::onClose(sender);
+
         TextureUtils::markDynamicDirty(gameObject);
         TextureUtils::markDynamicDirty(gameObjects);
         TextureUtils::applyDynamicChangesGlobal();
-
-        SetupCameraOffsetTrigger::onClose(sender);
     }
 };
 
@@ -214,16 +218,18 @@ class $modify(MySetupCameraModePopup, SetupCameraModePopup) {
         auto gameObject = this->m_gameObject;
         auto gameObjects = this->m_gameObjects;
 
+        SetupCameraModePopup::onClose(sender);
+
         TextureUtils::markDynamicDirty(gameObject);
         TextureUtils::markDynamicDirty(gameObjects);
         TextureUtils::applyDynamicChangesGlobal();
-
-        SetupCameraModePopup::onClose(sender);
     }
 };
 
 class $modify(MyLevelSettingsLayer, LevelSettingsLayer) {
     void onClose(cocos2d::CCObject* sender) {
+        LevelSettingsLayer::onClose(sender);
+
         if (auto lel = LevelEditorLayer::get()) {
             if (auto objects = lel->m_objects) {
                 for (auto baseObj : CCArrayExt<GameObject*>(objects)) {
@@ -235,7 +241,5 @@ class $modify(MyLevelSettingsLayer, LevelSettingsLayer) {
             }
         }
         TextureUtils::applyDynamicChangesGlobal();
-
-        LevelSettingsLayer::onClose(sender);
     }
 };

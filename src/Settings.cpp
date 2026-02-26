@@ -96,7 +96,10 @@ bool getSwitchValue(std::string const& key) {
     auto mod = Mod::get();
     if (!mod) return false;
 
-    if (auto setting = std::dynamic_pointer_cast<SpriteSwitchSettingV3>(mod->getSetting(key))) {
+    auto anySetting = mod->getSetting(key);
+    if (!anySetting) return false;
+
+    if (auto setting = std::dynamic_pointer_cast<SpriteSwitchSettingV3>(anySetting)) {
         return setting->getValue();
     }
     return mod->getSettingValue<bool>(key);
