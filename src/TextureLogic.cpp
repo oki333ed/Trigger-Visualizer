@@ -15,52 +15,51 @@
 #include <unordered_set>
 #include <Geode/utils/general.hpp>
 
+#define TV_TRACE(...) log::info("[TV] " __VA_ARGS__)
 
 bool TextureUtils::g_isToolboxInit = false;
 
 CCSprite* createIconSprite(std::string const& name) {
-    if (auto mod = Mod::get()) {
-        auto modPath = mod->expandSpriteName(name.c_str());
-        if (auto spr = CCSprite::create(std::string(modPath).c_str())) return spr;
+    TV_TRACE("createIconSprite begin name='{}'", name);
+    auto modPath = Mod::get()->expandSpriteName(name.c_str());
+    if (auto spr = CCSprite::create(std::string(modPath).c_str())) {
+        TV_TRACE("createIconSprite success source=mod-path name='{}'", name);
+        return spr;
     }
-    if (auto spr = CCSprite::createWithSpriteFrameName(name.c_str())) return spr;
-    if (auto spr = CCSprite::create(name.c_str())) return spr;
+    if (auto spr = CCSprite::createWithSpriteFrameName(name.c_str())) {
+        TV_TRACE("createIconSprite success source=frame name='{}'", name);
+        return spr;
+    }
+    if (auto spr = CCSprite::create(name.c_str())) {
+        TV_TRACE("createIconSprite success source=direct name='{}'", name);
+        return spr;
+    }
+    TV_TRACE("createIconSprite fallback empty name='{}'", name);
     return CCSprite::create();
 }
 
 void TextureUtils::setObjIcon(EffectGameObject* obj, const std::string& texture) {
-    if (!obj || texture.empty()) return;
-
-    CCSprite* newSpr = nullptr;
-    if (auto mod = Mod::get()) {
-        auto modPath = mod->expandSpriteName(texture.c_str());
-        newSpr = CCSprite::create(std::string(modPath).c_str());
+    if (!obj) {
+        TV_TRACE("setObjIcon skip reason=null-object texture='{}'", texture);
+        return;
     }
-    if (!newSpr) newSpr = CCSprite::createWithSpriteFrameName(texture.c_str());
-    if (!newSpr) newSpr = CCSprite::create(texture.c_str());
-    if (!newSpr) return;
-
-    auto tex = newSpr->getTexture();
-    if (!tex) return;
-
-    auto rect = newSpr->getTextureRect();
-    if (rect.size.width <= 0.f || rect.size.height <= 0.f) return;
-
-    obj->m_addToNodeContainer = true;
-    obj->setTexture(tex);
-    obj->setTextureRect(rect);
-}
-
-static bool isEditorObjectTracked(GameObject* obj) {
-    auto layer = LevelEditorLayer::get();
-    if (!obj || !layer || !layer->m_objects) return false;
-    return layer->m_objects->containsObject(obj);
+    if (auto newSpr = CCSprite::create(texture.c_str())) {
+        obj->m_addToNodeContainer = true;
+        obj->setTexture(newSpr->getTexture());
+        obj->setTextureRect(newSpr->getTextureRect());
+        TV_TRACE("setObjIcon success objID={} texture='{}'", obj->m_objectID, texture);
+    }
+    else {
+        TV_TRACE("setObjIcon failed sprite-create objID={} texture='{}'", obj->m_objectID, texture);
+    }
 }
 
 static std::optional<int> getIntKey(GameObject* obj, int key) {
     auto layer = LevelEditorLayer::get();
-    if (!obj || !layer || !layer->m_objects) return std::nullopt;
-    if (!isEditorObjectTracked(obj)) return std::nullopt;
+    if (!obj || !layer) {
+        TV_TRACE("getIntKey skip obj={} key={} hasLayer={}", static_cast<void*>(obj), key, layer != nullptr);
+        return std::nullopt;
+    }
 
     auto gs = obj->getSaveString(layer);          
     std::string s = gs.c_str();            
@@ -80,8 +79,10 @@ static std::optional<int> getIntKey(GameObject* obj, int key) {
         if (auto r = geode::utils::numFromString<int>(token)) {
             if (isKey)
                 currentKey = *r;
-            else if (currentKey == key)
+            else if (currentKey == key) {
+                TV_TRACE("getIntKey found objID={} key={} value={}", obj->m_objectID, key, *r);
                 return *r;
+            }
         }
 
         if (next == std::string_view::npos)
@@ -91,6 +92,7 @@ static std::optional<int> getIntKey(GameObject* obj, int key) {
         isKey = !isKey;
     }
 
+    TV_TRACE("getIntKey missing objID={} key={}", obj->m_objectID, key);
     return std::nullopt;
 }
 
@@ -99,7 +101,7 @@ using DynamicSettings = TextureUtils::DynamicSettings;
 using CacheKey = std::uint64_t;
 
 static std::unordered_map<CacheKey, std::uint64_t> s_dynamicCache;
-static std::unordered_set<CacheKey> s_dirtyObjects;
+static std::unordered_set<EffectGameObject*> s_dirtyObjects;
 static bool s_hasLastSettings = false;
 static DynamicSettings s_lastSettings{};
 
@@ -157,17 +159,10 @@ static std::uint64_t sigSfx(EffectGameObject* obj, const DynamicSettings&) {
     if (!sfx) return 0;
     float vol = sfx->m_volume;
 
-    auto mod = Mod::get();
-    float sfx5 = 1.25f;
-    float sfx4 = 0.75f;
-    float sfx3 = 0.50f;
-    float sfx2 = 0.25f;
-    if (mod) {
-        sfx5 = mod->getSettingValue<float>("sfx5");
-        sfx4 = mod->getSettingValue<float>("sfx4");
-        sfx3 = mod->getSettingValue<float>("sfx3");
-        sfx2 = mod->getSettingValue<float>("sfx2");
-    }
+    float sfx5 = Mod::get()->getSettingValue<float>("sfx5");
+    float sfx4 = Mod::get()->getSettingValue<float>("sfx4");
+    float sfx3 = Mod::get()->getSettingValue<float>("sfx3");
+    float sfx2 = Mod::get()->getSettingValue<float>("sfx2");
 
     int bucket = 1;
     if (vol > sfx5) bucket = 5;
@@ -273,7 +268,7 @@ static std::uint64_t sigColis(EffectGameObject* obj, const DynamicSettings&) {
 static std::uint64_t sigSpawn(EffectGameObject* obj, const DynamicSettings&) {
     int variant = 0;
     auto remap = getIntKey(obj, 442);
-    if (remap && *remap > 0) {
+    if (remap > 0) {
         variant = 1;
     }
 
@@ -372,7 +367,32 @@ enum class DynamicAction {
     EdgeCam
 };
 
+static const char* dynamicActionName(DynamicAction action) {
+    switch (action) {
+        case DynamicAction::Event: return "Event";
+        case DynamicAction::Sfx: return "Sfx";
+        case DynamicAction::Comp: return "Comp";
+        case DynamicAction::Edit: return "Edit";
+        case DynamicAction::Ui: return "Ui";
+        case DynamicAction::Start: return "Start";
+        case DynamicAction::Stop: return "Stop";
+        case DynamicAction::Move: return "Move";
+        case DynamicAction::Rotate: return "Rotate";
+        case DynamicAction::Pickup: return "Pickup";
+        case DynamicAction::Colis: return "Colis";
+        case DynamicAction::Spawn: return "Spawn";
+        case DynamicAction::Gravity: return "Gravity";
+        case DynamicAction::Count: return "Count";
+        case DynamicAction::OffsetCam: return "OffsetCam";
+        case DynamicAction::RotateCam: return "RotateCam";
+        case DynamicAction::StaticCam: return "StaticCam";
+        case DynamicAction::EdgeCam: return "EdgeCam";
+    }
+    return "Unknown";
+}
+
 static void applyDynamicAction(DynamicAction action, EffectGameObject* obj, const DynamicSettings& s) {
+    TV_TRACE("applyDynamicAction begin action={} objID={}", dynamicActionName(action), obj ? obj->m_objectID : -1);
     switch (action) {
         case DynamicAction::Event:
             TextureUtils::updateEventTexture(typeinfo_cast<EventLinkTrigger*>(obj), s.offEv);
@@ -429,6 +449,7 @@ static void applyDynamicAction(DynamicAction action, EffectGameObject* obj, cons
             TextureUtils::updateEdgeCamTexture(typeinfo_cast<CameraTriggerGameObject*>(obj));
             break;
     }
+    TV_TRACE("applyDynamicAction end action={} objID={}", dynamicActionName(action), obj ? obj->m_objectID : -1);
 }
 
 struct DynamicRule {
@@ -482,6 +503,7 @@ void TextureUtils::updateStopTexture(EffectGameObject* obj) {
 
     else if (auto v = getIntKey(obj, 580); v && *v == 2) tex = "resume.png"_spr;
     
+    TV_TRACE("updateStopTexture objID={} tex='{}'", obj->m_objectID, tex);
     setObjIcon(obj, tex);
 }
 
@@ -495,6 +517,7 @@ void TextureUtils::updateRotateTexture(EffectGameObject* obj) {
         tex = "rotate_follow.png"_spr;
     }
     
+    TV_TRACE("updateRotateTexture objID={} tex='{}' useTarget={}", obj->m_objectID, tex, obj->m_useMoveTarget);
     setObjIcon(obj, tex);
 }
 
@@ -510,6 +533,7 @@ void TextureUtils::updateMoveTexture(EffectGameObject* obj) {
         tex = "move_direction.png"_spr;
     }
     
+    TV_TRACE("updateMoveTexture objID={} tex='{}' useTarget={} lockFlags={}", obj->m_objectID, tex, obj->m_useMoveTarget, obj->m_lockToPlayerX || obj->m_lockToPlayerY || obj->m_lockToCameraX || obj->m_lockToCameraY);
     setObjIcon(obj, tex);
 }
 
@@ -527,6 +551,7 @@ void TextureUtils::updatePickupTexture(CountTriggerGameObject* obj) {
 
     else if(obj->m_pickupCount > 0) tex = "p_plus.png"_spr;
 
+    TV_TRACE("updatePickupTexture objID={} tex='{}' mode={} count={} override={}", obj->m_objectID, tex, obj->m_pickupTriggerMode, obj->m_pickupCount, obj->m_isOverride);
     setObjIcon(obj, tex);
 }
 
@@ -536,6 +561,7 @@ void TextureUtils::updateColisTexture(EffectGameObject* obj) {
 
     if(obj->m_triggerOnExit) tex = "colis_exit.png"_spr;
 
+    TV_TRACE("updateColisTexture objID={} tex='{}' onExit={}", obj->m_objectID, tex, obj->m_triggerOnExit);
     setObjIcon(obj, tex);
 }
 
@@ -545,10 +571,11 @@ void TextureUtils::updateSpawnTexture(EffectGameObject* obj) {
 
     auto remap = getIntKey(obj, 442);
     
-    if (remap && *remap > 0) {
+    if (remap > 0) {
         tex = "spawn_remap.png"_spr;
     }
 
+    TV_TRACE("updateSpawnTexture objID={} tex='{}' remap={}", obj->m_objectID, tex, remap.has_value() ? *remap : 0);
     setObjIcon(obj, tex);
 }
 
@@ -558,6 +585,7 @@ void TextureUtils::updateGravityTexture(EffectGameObject* obj) {
 
     if(obj->m_gravityValue > 1.0f) tex = "gravity_high.png"_spr;
 
+    TV_TRACE("updateGravityTexture objID={} tex='{}' gravity={}", obj->m_objectID, tex, obj->m_gravityValue);
     setObjIcon(obj, tex);
 }
 
@@ -572,6 +600,7 @@ void TextureUtils::updateCountTexture(CountTriggerGameObject* obj) {
     
     else tex = "i_set.png"_spr;
 
+    TV_TRACE("updateCountTexture objID={} tex='{}' mode={}", obj->m_objectID, tex, obj->m_pickupTriggerMode);
     setObjIcon(obj, tex);
 }
 
@@ -586,6 +615,7 @@ void TextureUtils::updateCompTexture(ItemTriggerGameObject* obj) {
         case 1: tex = "comp1.png"_spr; break;
         case 0: tex = "comp0.png"_spr; break;
     }
+    TV_TRACE("updateCompTexture objID={} tex='{}' type={}", obj->m_objectID, tex, obj->m_resultType3);
     setObjIcon(obj, tex);
 }
 
@@ -599,6 +629,7 @@ void TextureUtils::updateEditTexture(ItemTriggerGameObject* obj, bool dot) {
         case 1: tex = "edit1.png"_spr; break;
         case 0: tex = "edit0.png"_spr; break;
     }
+    TV_TRACE("updateEditTexture objID={} tex='{}' type={} dot={}", obj->m_objectID, tex, obj->m_resultType1, dot);
     setObjIcon(obj, tex);
 }
 
@@ -617,23 +648,27 @@ void TextureUtils::updateOffsetCamTexture(CameraTriggerGameObject* obj, bool col
     else if (yOnly && !xOnly)
         tex = color ? "offsetY.png"_spr : "coffsetY.png"_spr;
 
+    TV_TRACE("updateOffsetCamTexture objID={} tex='{}' color={} xOnly={} yOnly={}", obj->m_objectID, tex, color, xOnly, yOnly);
     setObjIcon(obj, tex);
 }
 
 void TextureUtils::updateRotateCamTexture(CameraTriggerGameObject* obj, bool color) {
     if (!obj) return;
 
-    const char* tex = color ? "rotatecam.png"_spr : "crotate.png"_spr;
-
+    const char* tex;
     if (color) {
+        if (obj->m_rotationDegrees >= 0.f)
+            tex = "rotatecam.png"_spr;
         if (obj->m_rotationDegrees < 0.f)
             tex = "rotatecamR.png"_spr;
     }
     else {
+        if (obj->m_rotationDegrees >= 0.f)
+            tex = "crotate.png"_spr;
         if (obj->m_rotationDegrees < 0.f)
             tex = "crotateR.png"_spr;
     }
-
+    TV_TRACE("updateRotateCamTexture objID={} tex='{}' color={} deg={}", obj->m_objectID, tex, color, obj->m_rotationDegrees);
     setObjIcon(obj, tex);
 }
 
@@ -646,6 +681,7 @@ void TextureUtils::updateStaticCamTexture(CameraTriggerGameObject* obj, bool col
         tex = "static_follow.png"_spr;
     }
 
+    TV_TRACE("updateStaticCamTexture objID={} tex='{}' color={}", obj->m_objectID, tex, color);
     setObjIcon(obj, tex);
 }    
 
@@ -658,6 +694,7 @@ void TextureUtils::updateEdgeCamTexture(CameraTriggerGameObject* obj) {
         case 2: tex = "edge.png"_spr; break;
         case 1: tex = "edgeL.png"_spr; break;
     }
+    TV_TRACE("updateEdgeCamTexture objID={} tex='{}' dir={}", obj->m_objectID, tex, obj->m_edgeDirection);
     setObjIcon(obj, tex);
 }    
 
@@ -665,28 +702,35 @@ void TextureUtils::updateSFXTexture(SFXTriggerGameObject* obj) {
     if (!obj) return;
     float vol = obj->m_volume;
     
-    auto mod = Mod::get();
-    auto getSfxVal = [mod](const char* key, float fallback) {
-        return mod ? mod->getSettingValue<float>(key) : fallback;
-    };
+    static auto getSfxVal = [](const char* key) { return Mod::get()->getSettingValue<float>(key); };
     
     const char* tex = "sfx1.png"_spr;
-    if (vol > getSfxVal("sfx5", 1.25f)) tex = "sfx5.png"_spr;
-    else if (vol > getSfxVal("sfx4", 0.75f)) tex = "sfx4.png"_spr;
-    else if (vol > getSfxVal("sfx3", 0.50f)) tex = "sfx3.png"_spr;
-    else if (vol > getSfxVal("sfx2", 0.25f)) tex = "sfx2.png"_spr;
+    if (vol > getSfxVal("sfx5")) tex = "sfx5.png"_spr;
+    else if (vol > getSfxVal("sfx4")) tex = "sfx4.png"_spr;
+    else if (vol > getSfxVal("sfx3")) tex = "sfx3.png"_spr;
+    else if (vol > getSfxVal("sfx2")) tex = "sfx2.png"_spr;
     
+    TV_TRACE("updateSFXTexture objID={} tex='{}' vol={}", obj->m_objectID, tex, vol);
     setObjIcon(obj, tex);
 }
 
 void TextureUtils::updateStartTexture(StartPosObject* obj) {
-    if (!obj) return;
+    if (!obj) {
+        TV_TRACE("updateStartTexture skip reason=null-object");
+        return;
+    }
     
     auto settings = obj->m_startSettings;
-    if (!settings) return;
+    if (!settings) {
+        TV_TRACE("updateStartTexture skip objID={} reason=no-settings", obj->m_objectID);
+        return;
+    }
 
     auto sprMain = CCSprite::create("start_title.png"_spr);
-    if (!sprMain) return;
+    if (!sprMain) {
+        TV_TRACE("updateStartTexture skip objID={} reason=no-main-sprite", obj->m_objectID);
+        return;
+    }
 
     float gap = 12.f; 
 
@@ -751,6 +795,10 @@ void TextureUtils::updateStartTexture(StartPosObject* obj) {
     }
 
     auto rt = CCRenderTexture::create(w, h);
+    if (!rt) {
+        TV_TRACE("updateStartTexture skip objID={} reason=no-render-texture", obj->m_objectID);
+        return;
+    }
     rt->beginWithClear(0, 0, 0, 0);
     
     sprMain->visit();
@@ -767,15 +815,32 @@ void TextureUtils::updateStartTexture(StartPosObject* obj) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(tex);
         obj->setTextureRect({0, 0, w, h});
+        TV_TRACE("updateStartTexture success objID={} mode={} speed={} mini={} reverse={} flipped={}",
+            obj->m_objectID,
+            settings->m_startMode,
+            static_cast<int>(settings->m_startSpeed),
+            settings->m_startMini,
+            settings->m_reverseGameplay,
+            settings->m_isFlipped
+        );
+    }
+    else {
+        TV_TRACE("updateStartTexture failed objID={} reason=no-output-texture", obj->m_objectID);
     }
 }
 
 void TextureUtils::updateUiTexture(UISettingsGameObject* obj) {
-    if (!obj) return;
+    if (!obj) {
+        TV_TRACE("updateUiTexture skip reason=null-object");
+        return;
+    }
     
     auto sprUiel = CCSprite::create("uiel.png"_spr);
     auto sprTitle = CCSprite::create("uititle.png"_spr);
-    if (!sprUiel || !sprTitle) return;
+    if (!sprUiel || !sprTitle) {
+        TV_TRACE("updateUiTexture skip objID={} reason=missing-base-sprites", obj->m_objectID);
+        return;
+    }
 
     float w = 25.f, h = 35.f;
     float cx = w/2, cy = h/2;
@@ -793,6 +858,10 @@ void TextureUtils::updateUiTexture(UISettingsGameObject* obj) {
     sprUiel->setFlipY(true);
 
     auto rt = CCRenderTexture::create(w, h);
+    if (!rt) {
+        TV_TRACE("updateUiTexture skip objID={} reason=no-render-texture", obj->m_objectID);
+        return;
+    }
     rt->beginWithClear(0,0,0,0);
     sprTitle->visit();
     sprUiel->visit();
@@ -815,11 +884,19 @@ void TextureUtils::updateUiTexture(UISettingsGameObject* obj) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(tex);
         obj->setTextureRect({0, 0, w, h});
+        TV_TRACE("updateUiTexture success objID={} xRef={} yRef={} xRel={} yRel={}",
+            obj->m_objectID, obj->m_xRef, obj->m_yRef, obj->m_xRelative, obj->m_yRelative);
+    }
+    else {
+        TV_TRACE("updateUiTexture failed objID={} reason=no-output-texture", obj->m_objectID);
     }
 }
 
 void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
-    if (!obj) return;
+    if (!obj) {
+        TV_TRACE("updateEventTexture skip reason=null-object");
+        return;
+    }
     const auto& eids = obj->m_eventIDs;
     std::vector<const char*> singleTex, combinedTex;
 
@@ -858,6 +935,7 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
     }
 
     if (singleTex.size() == 1) {
+        TV_TRACE("updateEventTexture single objID={} tex='{}' events={}", obj->m_objectID, singleTex[0], eids.size());
         setObjIcon(obj, singleTex[0]);
         return;
     }
@@ -865,7 +943,10 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
     auto spr1 = CCSprite::create(combinedTex[0]);
     auto spr2 = CCSprite::create(combinedTex[1]);
     auto sprText = CCSprite::create("evtitles.png"_spr);
-    if (!spr1 || !spr2 || !sprText) return;
+    if (!spr1 || !spr2 || !sprText) {
+        TV_TRACE("updateEventTexture skip objID={} reason=missing-combined-sprites count={}", obj->m_objectID, singleTex.size());
+        return;
+    }
 
     float w = 100.f, h = 50.f;
     float cx = w/2, cy = h/2;
@@ -875,6 +956,10 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
     sprText->setPosition({cx, cy});
 
     auto rt = CCRenderTexture::create(w, h);
+    if (!rt) {
+        TV_TRACE("updateEventTexture skip objID={} reason=no-render-texture", obj->m_objectID);
+        return;
+    }
     rt->beginWithClear(0,0,0,0);
     spr1->visit(); spr2->visit(); sprText->visit();
     rt->end();
@@ -886,6 +971,10 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(tex);
         obj->setTextureRect({0, 0, w, h});
+        TV_TRACE("updateEventTexture combined success objID={} events={} gap={}", obj->m_objectID, eids.size(), gap);
+    }
+    else {
+        TV_TRACE("updateEventTexture combined failed objID={} reason=no-output-texture", obj->m_objectID);
     }
 }
 
@@ -901,154 +990,188 @@ TextureUtils::DynamicSettings TextureUtils::getDynamicSettings() {
     settings.cam = getSwitchValue("dyn-cam");
     settings.color = getSwitchValue("color-cam");
     settings.game = getSwitchValue("dyn-game");
-    if (auto mod = Mod::get()) {
-        settings.offEv = mod->getSettingValue<float>("off-ev");
-    } else {
-        settings.offEv = 7.5f;
-    }
+    settings.offEv = Mod::get()->getSettingValue<float>("off-ev");
+    TV_TRACE("getDynamicSettings ev={} sfx={} item={} ui={} dotEdit={} start={} cam={} color={} game={} offEv={}",
+        settings.ev, settings.sfx, settings.item, settings.ui, settings.dotEdit, settings.start,
+        settings.cam, settings.color, settings.game, settings.offEv);
     return settings;
 }
 
 void TextureUtils::applyDynamicUpdates(EffectGameObject* obj, const DynamicSettings& s) {
-    if (!obj) return;
+    if (!obj) {
+        TV_TRACE("applyDynamicUpdates skip reason=null-object");
+        return;
+    }
 
     auto rule = findDynamicRule(obj->m_objectID);
 
-    if (!rule || !rule->enabled(s)) return;
+    if (!rule) {
+        TV_TRACE("applyDynamicUpdates skip objID={} reason=no-rule", obj->m_objectID);
+        return;
+    }
+    if (!rule->enabled(s)) {
+        TV_TRACE("applyDynamicUpdates skip objID={} reason=rule-disabled action={}", obj->m_objectID, dynamicActionName(rule->action));
+        return;
+    }
+    TV_TRACE("applyDynamicUpdates apply objID={} action={}", obj->m_objectID, dynamicActionName(rule->action));
     applyDynamicAction(rule->action, obj, s);
 }
 
 void TextureUtils::applyDynamicUpdatesCached(EffectGameObject* obj, const DynamicSettings& s) {
-    if (!obj) return;
+    if (!obj) {
+        TV_TRACE("applyDynamicUpdatesCached skip reason=null-object");
+        return;
+    }
 
     auto key = makeCacheKey(obj);
-    if (!key) return;
+    if (!key) {
+        TV_TRACE("applyDynamicUpdatesCached skip objID={} reason=no-key", obj->m_objectID);
+        return;
+    }
 
     auto sig = getDynamicSignature(obj, s);
 
     if (!sig) {
         s_dynamicCache.erase(key);
+        TV_TRACE("applyDynamicUpdatesCached clear objID={} reason=no-signature", obj->m_objectID);
         return;
     }
 
     auto it = s_dynamicCache.find(key);
-    if (it != s_dynamicCache.end() && it->second == sig) return;
+    if (it != s_dynamicCache.end() && it->second == sig) {
+        TV_TRACE("applyDynamicUpdatesCached hit objID={} sig={}", obj->m_objectID, sig);
+        return;
+    }
 
     s_dynamicCache[key] = sig;
+    TV_TRACE("applyDynamicUpdatesCached miss objID={} sig={} cacheSize={}", obj->m_objectID, sig, s_dynamicCache.size());
     applyDynamicUpdates(obj, s);
 }
 
 void TextureUtils::applyDynamicChangesGlobal() {
     auto lel = LevelEditorLayer::get();
-    if (!lel || !lel->m_objects) return;
+    if (!lel || !lel->m_objects) {
+        TV_TRACE("applyDynamicChangesGlobal skip reason=no-editor-or-objects");
+        return;
+    }
     
-    if (!getSwitchValue("dyn-enable")) return;
+    if (!getSwitchValue("dyn-enable")) {
+        TV_TRACE("applyDynamicChangesGlobal skip reason=dyn-disabled");
+        return;
+    }
 
     auto settings = getDynamicSettings();
     bool settingsChanged = !s_hasLastSettings || !settingsEqual(settings, s_lastSettings);
     s_hasLastSettings = true;
     s_lastSettings = settings;
 
-    if (!settingsChanged && s_dirtyObjects.empty()) return;
+    if (!settingsChanged && s_dirtyObjects.empty()) {
+        TV_TRACE("applyDynamicChangesGlobal skip reason=no-changes");
+        return;
+    }
 
+    size_t processed = 0;
     if (settingsChanged) {
         Ref<CCArray> arr = lel->m_objects;
-        for (auto baseObj : CCArrayExt<GameObject*>(arr)) {
-            auto obj = typeinfo_cast<EffectGameObject*>(baseObj);
-            if (obj) applyDynamicUpdatesCached(obj, settings);
+        TV_TRACE("applyDynamicChangesGlobal full-pass objects={}", arr->count());
+        for (auto obj : CCArrayExt<EffectGameObject*>(arr)) {
+            if (obj) {
+                ++processed;
+                applyDynamicUpdatesCached(obj, settings);
+            }
         }
     } 
     
     else {
-        Ref<CCArray> arr = lel->m_objects;
-        for (auto baseObj : CCArrayExt<GameObject*>(arr)) {
-            auto obj = typeinfo_cast<EffectGameObject*>(baseObj);
-            if (!obj) continue;
-            auto key = makeCacheKey(obj);
-            if (!key) continue;
-            if (s_dirtyObjects.find(key) == s_dirtyObjects.end()) continue;
-            applyDynamicUpdatesCached(obj, settings);
+        TV_TRACE("applyDynamicChangesGlobal dirty-pass objects={}", s_dirtyObjects.size());
+        for (auto obj : s_dirtyObjects) {
+            if (obj) {
+                ++processed;
+                applyDynamicUpdatesCached(obj, settings);
+            }
         }
     }
 
+    TV_TRACE("applyDynamicChangesGlobal done processed={} dirtyBeforeClear={}", processed, s_dirtyObjects.size());
     s_dirtyObjects.clear();
 }
 
 void TextureUtils::markDynamicDirty(EffectGameObject* obj) {
-    if (!obj) return;
-    if (!isEditorObjectTracked(obj)) return;
-    auto key = makeCacheKey(obj);
-    if (!key) return;
-    s_dirtyObjects.insert(key);
+    if (!obj) {
+        TV_TRACE("markDynamicDirty skip reason=null-object");
+        return;
+    }
+    s_dirtyObjects.insert(obj);
+    TV_TRACE("markDynamicDirty objID={} dirtySize={}", obj->m_objectID, s_dirtyObjects.size());
 }
 
 void TextureUtils::markDynamicDirty(CCArray* objects) {
-    if (!objects) return;
-    for (auto baseObj : CCArrayExt<GameObject*>(objects)) {
-        auto obj = typeinfo_cast<EffectGameObject*>(baseObj);
+    if (!objects) {
+        TV_TRACE("markDynamicDirty(array) skip reason=null-array");
+        return;
+    }
+    TV_TRACE("markDynamicDirty(array) begin count={}", objects->count());
+    for (auto obj : CCArrayExt<EffectGameObject*>(objects)) {
         if (obj) markDynamicDirty(obj);
     }
 }
 
 void TextureUtils::clearDynamicCache() {
+    TV_TRACE("clearDynamicCache cacheSize={} dirtySize={} hasLastSettings={}", s_dynamicCache.size(), s_dirtyObjects.size(), s_hasLastSettings);
     s_dynamicCache.clear();
     s_dirtyObjects.clear();
     s_hasLastSettings = false;
 }
 
-const std::unordered_map<int, std::pair<std::string, std::string>>& TextureUtils::getIconMap() {
-    static const std::unordered_map<int, std::pair<std::string, std::string>> iconMap = {
-        // SHADER
-        {2904, {"shader.png", "do-shader"}}, {2905, {"shock.png", "do-shader"}},
-        {2907, {"line.png", "do-shader"}}, {2909, {"glitch.png", "do-shader"}},
-        {2910, {"chromatic.png", "do-shader"}}, {2911, {"chrglitch.png", "do-shader"}},
-        {2912, {"pixelate.png", "do-shader"}}, {2913, {"circles.png", "do-shader"}},
-        {2914, {"radial.png", "do-shader"}}, {2915, {"motion.png", "do-shader"}},
-        {2916, {"bulge.png", "do-shader"}}, {2917, {"pinch.png", "do-shader"}},
-        {2919, {"blind.png", "do-shader"}}, {2920, {"sepia.png", "do-shader"}},
-        {2921, {"negative.png", "do-shader"}}, {2922, {"hue.png", "do-shader"}},
-        {2923, {"color.png", "do-shader"}}, {2924, {"screen.png", "do-shader"}},
+const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils::iconMap = {
+    // SHADER
+    {2904, {"shader.png"_spr, "do-shader"}}, {2905, {"shock.png"_spr, "do-shader"}},
+    {2907, {"line.png"_spr, "do-shader"}}, {2909, {"glitch.png"_spr, "do-shader"}},
+    {2910, {"chromatic.png"_spr, "do-shader"}}, {2911, {"chrglitch.png"_spr, "do-shader"}},
+    {2912, {"pixelate.png"_spr, "do-shader"}}, {2913, {"circles.png"_spr, "do-shader"}},
+    {2914, {"radial.png"_spr, "do-shader"}}, {2915, {"motion.png"_spr, "do-shader"}},
+    {2916, {"bulge.png"_spr, "do-shader"}}, {2917, {"pinch.png"_spr, "do-shader"}},
+    {2919, {"blind.png"_spr, "do-shader"}}, {2920, {"sepia.png"_spr, "do-shader"}},
+    {2921, {"negative.png"_spr, "do-shader"}}, {2922, {"hue.png"_spr, "do-shader"}},
+    {2923, {"color.png"_spr, "do-shader"}}, {2924, {"screen.png"_spr, "do-shader"}},
+    
+    // DEFAULT
+    {901, {"move.png"_spr, "do-default"}}, {1006, {"pulse.png"_spr, "do-default"}},
+    {1007, {"alpha.png"_spr, "do-default"}}, {1346, {"rotate.png"_spr, "do-default"}},
+    {2067, {"scale.png"_spr, "do-default"}}, {1585, {"animate.png"_spr, "do-default"}},
+    {3016, {"advfollow.png"_spr, "do-default"}}, {3660, {"editadv.png"_spr, "do-default"}},
+    {3661, {"target.png"_spr, "do-default"}}, {1814, {"followy.png"_spr, "do-default"}},
+    {1935, {"timewarp.png"_spr, "do-default"}}, {1932, {"control.png"_spr, "do-default"}},
+    {2999, {"mg.png"_spr, "do-default"}}, {3606, {"bgs.png"_spr, "do-default"}},
+    {3612, {"mgs.png"_spr, "do-default"}}, {3613, {"ui.png"_spr, "do-default"}},
+    {2899, {"options.png"_spr, "do-default"}}, {3602, {"sfx.png"_spr, "do-default"}},
+    {3603, {"esfx.png"_spr, "do-default"}}, {3600, {"end.png"_spr, "do-default"}},
+    {2901, {"gpoff.png"_spr, "do-default"}}, {1917, {"reverse.png"_spr, "do-default"}},
+    {1934, {"song.png"_spr, "do-default"}}, {3605, {"editsong.png"_spr, "do-default"}},
+    {3029, {"bgc.png"_spr, "do-default"}}, {3030, {"gc.png"_spr, "do-default"}},
+    {3031, {"mgc.png"_spr, "do-default"}}, {3604, {"ev.png"_spr, "do-default"}},
+    {2066, {"gravity_low.png"_spr, "do-default"}},
+    // LOGIC
+    {1616, {"stop.png"_spr, "do-logic"}}, {1817, {"pickup.png"_spr, "do-logic"}},
+    {1268, {"spawn.png"_spr, "do-logic"}}, {1347, {"follow.png"_spr, "do-logic"}},
+    {1912, {"random.png"_spr, "do-logic"}}, {2068, {"advrandom.png"_spr, "do-logic"}},
+    {1611, {"count.png"_spr, "do-logic"}}, {1811, {"advcount.png"_spr, "do-logic"}},
+    {1595, {"touch.png"_spr, "do-logic"}}, {3619, {"edit.png"_spr, "do-logic"}},
+    {3620, {"comp.png"_spr, "do-logic"}}, {3641, {"pers.png"_spr, "do-logic"}},
+    {1812, {"dead.png"_spr, "do-logic"}}, {1815, {"colis.png"_spr, "do-logic"}},
+    {3609, {"advcolis.png"_spr, "do-logic"}},
 
-        // DEFAULT
-        {901, {"move.png", "do-default"}}, {1006, {"pulse.png", "do-default"}},
-        {1007, {"alpha.png", "do-default"}}, {1346, {"rotate.png", "do-default"}},
-        {2067, {"scale.png", "do-default"}}, {1585, {"animate.png", "do-default"}},
-        {3016, {"advfollow.png", "do-default"}}, {3660, {"editadv.png", "do-default"}},
-        {3661, {"target.png", "do-default"}}, {1814, {"followy.png", "do-default"}},
-        {1935, {"timewarp.png", "do-default"}}, {1932, {"control.png", "do-default"}},
-        {2999, {"mg.png", "do-default"}}, {3606, {"bgs.png", "do-default"}},
-        {3612, {"mgs.png", "do-default"}}, {3613, {"ui.png", "do-default"}},
-        {2899, {"options.png", "do-default"}}, {3602, {"sfx.png", "do-default"}},
-        {3603, {"esfx.png", "do-default"}}, {3600, {"end.png", "do-default"}},
-        {2901, {"gpoff.png", "do-default"}}, {1917, {"reverse.png", "do-default"}},
-        {1934, {"song.png", "do-default"}}, {3605, {"editsong.png", "do-default"}},
-        {3029, {"bgc.png", "do-default"}}, {3030, {"gc.png", "do-default"}},
-        {3031, {"mgc.png", "do-default"}}, {3604, {"ev.png", "do-default"}},
-        {2066, {"gravity_low.png", "do-default"}},
+    // AREA
+    {3006, {"amove.png"_spr, "do-area"}}, {3007, {"arotate.png"_spr, "do-area"}},
+    {3008, {"ascale.png"_spr, "do-area"}}, {3009, {"aalpha.png"_spr, "do-area"}},
+    {3010, {"apulse.png"_spr, "do-area"}}, {3011, {"eamove.png"_spr, "do-area"}},
+    {3012, {"earotate.png"_spr, "do-area"}}, {3013, {"eascale.png"_spr, "do-area"}},
+    {3014, {"eaalpha.png"_spr, "do-area"}}, {3015, {"eapulse.png"_spr, "do-area"}},
+    {3017, {"emove.png"_spr, "do-area"}}, {3018, {"erotate.png"_spr, "do-area"}},
+    {3019, {"escale.png"_spr, "do-area"}}, {3020, {"ealpha.png"_spr, "do-area"}},
+    {3021, {"epulse.png"_spr, "do-area"}},
 
-        // LOGIC
-        {1616, {"stop.png", "do-logic"}}, {1817, {"pickup.png", "do-logic"}},
-        {1268, {"spawn.png", "do-logic"}}, {1347, {"follow.png", "do-logic"}},
-        {1912, {"random.png", "do-logic"}}, {2068, {"advrandom.png", "do-logic"}},
-        {1611, {"count.png", "do-logic"}}, {1811, {"advcount.png", "do-logic"}},
-        {1595, {"touch.png", "do-logic"}}, {3619, {"edit.png", "do-logic"}},
-        {3620, {"comp.png", "do-logic"}}, {3641, {"pers.png", "do-logic"}},
-        {1812, {"dead.png", "do-logic"}}, {1815, {"colis.png", "do-logic"}},
-        {3609, {"advcolis.png", "do-logic"}},
-
-        // AREA
-        {3006, {"amove.png", "do-area"}}, {3007, {"arotate.png", "do-area"}},
-        {3008, {"ascale.png", "do-area"}}, {3009, {"aalpha.png", "do-area"}},
-        {3010, {"apulse.png", "do-area"}}, {3011, {"eamove.png", "do-area"}},
-        {3012, {"earotate.png", "do-area"}}, {3013, {"eascale.png", "do-area"}},
-        {3014, {"eaalpha.png", "do-area"}}, {3015, {"eapulse.png", "do-area"}},
-        {3017, {"emove.png", "do-area"}}, {3018, {"erotate.png", "do-area"}},
-        {3019, {"escale.png", "do-area"}}, {3020, {"ealpha.png", "do-area"}},
-        {3021, {"epulse.png", "do-area"}},
-
-        // COLIS
-        {3640, {"colisin.png", "do-colis"}}, {1816, {"colisblock.png", "do-colis"}},
-        {3643, {"colistouch.png", "do-colis"}}
-    };
-    return iconMap;
-}
+    // COLIS
+    {3640, {"colisin.png"_spr, "do-colis"}}, {1816, {"colisblock.png"_spr, "do-colis"}},
+    {3643, {"colistouch.png"_spr, "do-colis"}}
+};

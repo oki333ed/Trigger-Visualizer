@@ -10,7 +10,7 @@ bool getSwitchValue(std::string const& key);
 struct TextureUtils {
     static bool g_isToolboxInit;
     
-    static const std::unordered_map<int, std::pair<std::string, std::string>>& getIconMap();
+    static const std::unordered_map<int, std::pair<std::string, std::string>> iconMap;
 
     static void setObjIcon(EffectGameObject* obj, const std::string& texture);
     
