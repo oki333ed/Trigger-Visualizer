@@ -237,8 +237,11 @@ $execute {
 }
 
 
+// iOS startup crash points to SetupTriggerPopup::onClose (0x13090c...),
+// so keep popup-close hooks disabled on iOS for stability.
+#if !defined(GEODE_IS_IOS)
 // update dynamic texture on close popup
-class $modify(SetupTriggerPopup) {
+class $modify(MySetupTriggerPopup, SetupTriggerPopup) {
     void onClose(cocos2d::CCObject* sender) {
         TV_TRACE("SetupTriggerPopup::onClose begin sender={}", static_cast<void*>(sender));
         SetupTriggerPopup::onClose(sender); 
@@ -294,3 +297,4 @@ class $modify(MyLevelSettingsLayer, LevelSettingsLayer) {
         TV_TRACE("LevelSettingsLayer::onClose end markedStartObjects={}", marked);
     }
 };
+#endif
