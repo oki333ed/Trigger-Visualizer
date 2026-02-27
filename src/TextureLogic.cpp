@@ -15,53 +15,42 @@
 #include <unordered_set>
 #include <Geode/utils/general.hpp>
 
-#define TV_TRACE(...) log::info("[TV] " __VA_ARGS__)
 
 bool TextureUtils::g_isToolboxInit = false;
 
 CCSprite* createIconSprite(std::string const& name) {
-    TV_TRACE("createIconSprite begin name='{}'", name);
     if (auto mod = Mod::get()) {
         auto modPath = mod->expandSpriteName(name.c_str());
         if (auto spr = CCSprite::create(std::string(modPath).c_str())) {
-            TV_TRACE("createIconSprite success source=mod-path name='{}'", name);
             return spr;
         }
     } else {
-        TV_TRACE("createIconSprite skip mod-path reason=no-current-mod");
     }
     if (auto spr = CCSprite::createWithSpriteFrameName(name.c_str())) {
-        TV_TRACE("createIconSprite success source=frame name='{}'", name);
         return spr;
     }
     if (auto spr = CCSprite::create(name.c_str())) {
-        TV_TRACE("createIconSprite success source=direct name='{}'", name);
         return spr;
     }
-    TV_TRACE("createIconSprite fallback empty name='{}'", name);
     return CCSprite::create();
 }
 
 void TextureUtils::setObjIcon(EffectGameObject* obj, const std::string& texture) {
     if (!obj) {
-        TV_TRACE("setObjIcon skip reason=null-object texture='{}'", texture);
         return;
     }
     if (auto newSpr = CCSprite::create(texture.c_str())) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(newSpr->getTexture());
         obj->setTextureRect(newSpr->getTextureRect());
-        TV_TRACE("setObjIcon success objID={} texture='{}'", obj->m_objectID, texture);
     }
     else {
-        TV_TRACE("setObjIcon failed sprite-create objID={} texture='{}'", obj->m_objectID, texture);
     }
 }
 
 static std::optional<int> getIntKey(GameObject* obj, int key) {
     auto layer = LevelEditorLayer::get();
     if (!obj || !layer) {
-        TV_TRACE("getIntKey skip obj={} key={} hasLayer={}", static_cast<void*>(obj), key, layer != nullptr);
         return std::nullopt;
     }
 
@@ -84,7 +73,6 @@ static std::optional<int> getIntKey(GameObject* obj, int key) {
             if (isKey)
                 currentKey = *r;
             else if (currentKey == key) {
-                TV_TRACE("getIntKey found objID={} key={} value={}", obj->m_objectID, key, *r);
                 return *r;
             }
         }
@@ -96,7 +84,6 @@ static std::optional<int> getIntKey(GameObject* obj, int key) {
         isKey = !isKey;
     }
 
-    TV_TRACE("getIntKey missing objID={} key={}", obj->m_objectID, key);
     return std::nullopt;
 }
 
@@ -396,7 +383,6 @@ static const char* dynamicActionName(DynamicAction action) {
 }
 
 static void applyDynamicAction(DynamicAction action, EffectGameObject* obj, const DynamicSettings& s) {
-    TV_TRACE("applyDynamicAction begin action={} objID={}", dynamicActionName(action), obj ? obj->m_objectID : -1);
     switch (action) {
         case DynamicAction::Event:
             TextureUtils::updateEventTexture(typeinfo_cast<EventLinkTrigger*>(obj), s.offEv);
@@ -453,7 +439,6 @@ static void applyDynamicAction(DynamicAction action, EffectGameObject* obj, cons
             TextureUtils::updateEdgeCamTexture(typeinfo_cast<CameraTriggerGameObject*>(obj));
             break;
     }
-    TV_TRACE("applyDynamicAction end action={} objID={}", dynamicActionName(action), obj ? obj->m_objectID : -1);
 }
 
 struct DynamicRule {
@@ -507,7 +492,6 @@ void TextureUtils::updateStopTexture(EffectGameObject* obj) {
 
     else if (auto v = getIntKey(obj, 580); v && *v == 2) tex = "resume.png"_spr;
     
-    TV_TRACE("updateStopTexture objID={} tex='{}'", obj->m_objectID, tex);
     setObjIcon(obj, tex);
 }
 
@@ -521,7 +505,6 @@ void TextureUtils::updateRotateTexture(EffectGameObject* obj) {
         tex = "rotate_follow.png"_spr;
     }
     
-    TV_TRACE("updateRotateTexture objID={} tex='{}' useTarget={}", obj->m_objectID, tex, obj->m_useMoveTarget);
     setObjIcon(obj, tex);
 }
 
@@ -537,7 +520,6 @@ void TextureUtils::updateMoveTexture(EffectGameObject* obj) {
         tex = "move_direction.png"_spr;
     }
     
-    TV_TRACE("updateMoveTexture objID={} tex='{}' useTarget={} lockFlags={}", obj->m_objectID, tex, obj->m_useMoveTarget, obj->m_lockToPlayerX || obj->m_lockToPlayerY || obj->m_lockToCameraX || obj->m_lockToCameraY);
     setObjIcon(obj, tex);
 }
 
@@ -555,7 +537,6 @@ void TextureUtils::updatePickupTexture(CountTriggerGameObject* obj) {
 
     else if(obj->m_pickupCount > 0) tex = "p_plus.png"_spr;
 
-    TV_TRACE("updatePickupTexture objID={} tex='{}' mode={} count={} override={}", obj->m_objectID, tex, obj->m_pickupTriggerMode, obj->m_pickupCount, obj->m_isOverride);
     setObjIcon(obj, tex);
 }
 
@@ -565,7 +546,6 @@ void TextureUtils::updateColisTexture(EffectGameObject* obj) {
 
     if(obj->m_triggerOnExit) tex = "colis_exit.png"_spr;
 
-    TV_TRACE("updateColisTexture objID={} tex='{}' onExit={}", obj->m_objectID, tex, obj->m_triggerOnExit);
     setObjIcon(obj, tex);
 }
 
@@ -579,7 +559,6 @@ void TextureUtils::updateSpawnTexture(EffectGameObject* obj) {
         tex = "spawn_remap.png"_spr;
     }
 
-    TV_TRACE("updateSpawnTexture objID={} tex='{}' remap={}", obj->m_objectID, tex, remap.has_value() ? *remap : 0);
     setObjIcon(obj, tex);
 }
 
@@ -589,7 +568,6 @@ void TextureUtils::updateGravityTexture(EffectGameObject* obj) {
 
     if(obj->m_gravityValue > 1.0f) tex = "gravity_high.png"_spr;
 
-    TV_TRACE("updateGravityTexture objID={} tex='{}' gravity={}", obj->m_objectID, tex, obj->m_gravityValue);
     setObjIcon(obj, tex);
 }
 
@@ -604,7 +582,6 @@ void TextureUtils::updateCountTexture(CountTriggerGameObject* obj) {
     
     else tex = "i_set.png"_spr;
 
-    TV_TRACE("updateCountTexture objID={} tex='{}' mode={}", obj->m_objectID, tex, obj->m_pickupTriggerMode);
     setObjIcon(obj, tex);
 }
 
@@ -619,7 +596,6 @@ void TextureUtils::updateCompTexture(ItemTriggerGameObject* obj) {
         case 1: tex = "comp1.png"_spr; break;
         case 0: tex = "comp0.png"_spr; break;
     }
-    TV_TRACE("updateCompTexture objID={} tex='{}' type={}", obj->m_objectID, tex, obj->m_resultType3);
     setObjIcon(obj, tex);
 }
 
@@ -633,7 +609,6 @@ void TextureUtils::updateEditTexture(ItemTriggerGameObject* obj, bool dot) {
         case 1: tex = "edit1.png"_spr; break;
         case 0: tex = "edit0.png"_spr; break;
     }
-    TV_TRACE("updateEditTexture objID={} tex='{}' type={} dot={}", obj->m_objectID, tex, obj->m_resultType1, dot);
     setObjIcon(obj, tex);
 }
 
@@ -652,7 +627,6 @@ void TextureUtils::updateOffsetCamTexture(CameraTriggerGameObject* obj, bool col
     else if (yOnly && !xOnly)
         tex = color ? "offsetY.png"_spr : "coffsetY.png"_spr;
 
-    TV_TRACE("updateOffsetCamTexture objID={} tex='{}' color={} xOnly={} yOnly={}", obj->m_objectID, tex, color, xOnly, yOnly);
     setObjIcon(obj, tex);
 }
 
@@ -672,7 +646,6 @@ void TextureUtils::updateRotateCamTexture(CameraTriggerGameObject* obj, bool col
         if (obj->m_rotationDegrees < 0.f)
             tex = "crotateR.png"_spr;
     }
-    TV_TRACE("updateRotateCamTexture objID={} tex='{}' color={} deg={}", obj->m_objectID, tex, color, obj->m_rotationDegrees);
     setObjIcon(obj, tex);
 }
 
@@ -685,7 +658,6 @@ void TextureUtils::updateStaticCamTexture(CameraTriggerGameObject* obj, bool col
         tex = "static_follow.png"_spr;
     }
 
-    TV_TRACE("updateStaticCamTexture objID={} tex='{}' color={}", obj->m_objectID, tex, color);
     setObjIcon(obj, tex);
 }    
 
@@ -698,7 +670,6 @@ void TextureUtils::updateEdgeCamTexture(CameraTriggerGameObject* obj) {
         case 2: tex = "edge.png"_spr; break;
         case 1: tex = "edgeL.png"_spr; break;
     }
-    TV_TRACE("updateEdgeCamTexture objID={} tex='{}' dir={}", obj->m_objectID, tex, obj->m_edgeDirection);
     setObjIcon(obj, tex);
 }    
 
@@ -714,25 +685,21 @@ void TextureUtils::updateSFXTexture(SFXTriggerGameObject* obj) {
     else if (vol > getSfxVal("sfx3")) tex = "sfx3.png"_spr;
     else if (vol > getSfxVal("sfx2")) tex = "sfx2.png"_spr;
     
-    TV_TRACE("updateSFXTexture objID={} tex='{}' vol={}", obj->m_objectID, tex, vol);
     setObjIcon(obj, tex);
 }
 
 void TextureUtils::updateStartTexture(StartPosObject* obj) {
     if (!obj) {
-        TV_TRACE("updateStartTexture skip reason=null-object");
         return;
     }
     
     auto settings = obj->m_startSettings;
     if (!settings) {
-        TV_TRACE("updateStartTexture skip objID={} reason=no-settings", obj->m_objectID);
         return;
     }
 
     auto sprMain = CCSprite::create("start_title.png"_spr);
     if (!sprMain) {
-        TV_TRACE("updateStartTexture skip objID={} reason=no-main-sprite", obj->m_objectID);
         return;
     }
 
@@ -800,7 +767,6 @@ void TextureUtils::updateStartTexture(StartPosObject* obj) {
 
     auto rt = CCRenderTexture::create(w, h);
     if (!rt) {
-        TV_TRACE("updateStartTexture skip objID={} reason=no-render-texture", obj->m_objectID);
         return;
     }
     rt->beginWithClear(0, 0, 0, 0);
@@ -819,30 +785,19 @@ void TextureUtils::updateStartTexture(StartPosObject* obj) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(tex);
         obj->setTextureRect({0, 0, w, h});
-        TV_TRACE("updateStartTexture success objID={} mode={} speed={} mini={} reverse={} flipped={}",
-            obj->m_objectID,
-            settings->m_startMode,
-            static_cast<int>(settings->m_startSpeed),
-            settings->m_startMini,
-            settings->m_reverseGameplay,
-            settings->m_isFlipped
-        );
     }
     else {
-        TV_TRACE("updateStartTexture failed objID={} reason=no-output-texture", obj->m_objectID);
     }
 }
 
 void TextureUtils::updateUiTexture(UISettingsGameObject* obj) {
     if (!obj) {
-        TV_TRACE("updateUiTexture skip reason=null-object");
         return;
     }
     
     auto sprUiel = CCSprite::create("uiel.png"_spr);
     auto sprTitle = CCSprite::create("uititle.png"_spr);
     if (!sprUiel || !sprTitle) {
-        TV_TRACE("updateUiTexture skip objID={} reason=missing-base-sprites", obj->m_objectID);
         return;
     }
 
@@ -863,7 +818,6 @@ void TextureUtils::updateUiTexture(UISettingsGameObject* obj) {
 
     auto rt = CCRenderTexture::create(w, h);
     if (!rt) {
-        TV_TRACE("updateUiTexture skip objID={} reason=no-render-texture", obj->m_objectID);
         return;
     }
     rt->beginWithClear(0,0,0,0);
@@ -888,17 +842,13 @@ void TextureUtils::updateUiTexture(UISettingsGameObject* obj) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(tex);
         obj->setTextureRect({0, 0, w, h});
-        TV_TRACE("updateUiTexture success objID={} xRef={} yRef={} xRel={} yRel={}",
-            obj->m_objectID, obj->m_xRef, obj->m_yRef, obj->m_xRelative, obj->m_yRelative);
     }
     else {
-        TV_TRACE("updateUiTexture failed objID={} reason=no-output-texture", obj->m_objectID);
     }
 }
 
 void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
     if (!obj) {
-        TV_TRACE("updateEventTexture skip reason=null-object");
         return;
     }
     const auto& eids = obj->m_eventIDs;
@@ -939,7 +889,6 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
     }
 
     if (singleTex.size() == 1) {
-        TV_TRACE("updateEventTexture single objID={} tex='{}' events={}", obj->m_objectID, singleTex[0], eids.size());
         setObjIcon(obj, singleTex[0]);
         return;
     }
@@ -948,7 +897,6 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
     auto spr2 = CCSprite::create(combinedTex[1]);
     auto sprText = CCSprite::create("evtitles.png"_spr);
     if (!spr1 || !spr2 || !sprText) {
-        TV_TRACE("updateEventTexture skip objID={} reason=missing-combined-sprites count={}", obj->m_objectID, singleTex.size());
         return;
     }
 
@@ -961,7 +909,6 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
 
     auto rt = CCRenderTexture::create(w, h);
     if (!rt) {
-        TV_TRACE("updateEventTexture skip objID={} reason=no-render-texture", obj->m_objectID);
         return;
     }
     rt->beginWithClear(0,0,0,0);
@@ -975,10 +922,8 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
         obj->m_addToNodeContainer = true;
         obj->setTexture(tex);
         obj->setTextureRect({0, 0, w, h});
-        TV_TRACE("updateEventTexture combined success objID={} events={} gap={}", obj->m_objectID, eids.size(), gap);
     }
     else {
-        TV_TRACE("updateEventTexture combined failed objID={} reason=no-output-texture", obj->m_objectID);
     }
 }
 
@@ -995,41 +940,32 @@ TextureUtils::DynamicSettings TextureUtils::getDynamicSettings() {
     settings.color = getSwitchValue("color-cam");
     settings.game = getSwitchValue("dyn-game");
     settings.offEv = Mod::get()->getSettingValue<float>("off-ev");
-    TV_TRACE("getDynamicSettings ev={} sfx={} item={} ui={} dotEdit={} start={} cam={} color={} game={} offEv={}",
-        settings.ev, settings.sfx, settings.item, settings.ui, settings.dotEdit, settings.start,
-        settings.cam, settings.color, settings.game, settings.offEv);
     return settings;
 }
 
 void TextureUtils::applyDynamicUpdates(EffectGameObject* obj, const DynamicSettings& s) {
     if (!obj) {
-        TV_TRACE("applyDynamicUpdates skip reason=null-object");
         return;
     }
 
     auto rule = findDynamicRule(obj->m_objectID);
 
     if (!rule) {
-        TV_TRACE("applyDynamicUpdates skip objID={} reason=no-rule", obj->m_objectID);
         return;
     }
     if (!rule->enabled(s)) {
-        TV_TRACE("applyDynamicUpdates skip objID={} reason=rule-disabled action={}", obj->m_objectID, dynamicActionName(rule->action));
         return;
     }
-    TV_TRACE("applyDynamicUpdates apply objID={} action={}", obj->m_objectID, dynamicActionName(rule->action));
     applyDynamicAction(rule->action, obj, s);
 }
 
 void TextureUtils::applyDynamicUpdatesCached(EffectGameObject* obj, const DynamicSettings& s) {
     if (!obj) {
-        TV_TRACE("applyDynamicUpdatesCached skip reason=null-object");
         return;
     }
 
     auto key = makeCacheKey(obj);
     if (!key) {
-        TV_TRACE("applyDynamicUpdatesCached skip objID={} reason=no-key", obj->m_objectID);
         return;
     }
 
@@ -1037,30 +973,25 @@ void TextureUtils::applyDynamicUpdatesCached(EffectGameObject* obj, const Dynami
 
     if (!sig) {
         s_dynamicCache.erase(key);
-        TV_TRACE("applyDynamicUpdatesCached clear objID={} reason=no-signature", obj->m_objectID);
         return;
     }
 
     auto it = s_dynamicCache.find(key);
     if (it != s_dynamicCache.end() && it->second == sig) {
-        TV_TRACE("applyDynamicUpdatesCached hit objID={} sig={}", obj->m_objectID, sig);
         return;
     }
 
     s_dynamicCache[key] = sig;
-    TV_TRACE("applyDynamicUpdatesCached miss objID={} sig={} cacheSize={}", obj->m_objectID, sig, s_dynamicCache.size());
     applyDynamicUpdates(obj, s);
 }
 
 void TextureUtils::applyDynamicChangesGlobal() {
     auto lel = LevelEditorLayer::get();
     if (!lel || !lel->m_objects) {
-        TV_TRACE("applyDynamicChangesGlobal skip reason=no-editor-or-objects");
         return;
     }
     
     if (!getSwitchValue("dyn-enable")) {
-        TV_TRACE("applyDynamicChangesGlobal skip reason=dyn-disabled");
         return;
     }
 
@@ -1070,58 +1001,46 @@ void TextureUtils::applyDynamicChangesGlobal() {
     s_lastSettings = settings;
 
     if (!settingsChanged && s_dirtyObjects.empty()) {
-        TV_TRACE("applyDynamicChangesGlobal skip reason=no-changes");
         return;
     }
 
-    size_t processed = 0;
     if (settingsChanged) {
         Ref<CCArray> arr = lel->m_objects;
-        TV_TRACE("applyDynamicChangesGlobal full-pass objects={}", arr->count());
         for (auto obj : CCArrayExt<EffectGameObject*>(arr)) {
             if (obj) {
-                ++processed;
                 applyDynamicUpdatesCached(obj, settings);
             }
         }
     } 
     
     else {
-        TV_TRACE("applyDynamicChangesGlobal dirty-pass objects={}", s_dirtyObjects.size());
         for (auto obj : s_dirtyObjects) {
             if (obj) {
-                ++processed;
                 applyDynamicUpdatesCached(obj, settings);
             }
         }
     }
 
-    TV_TRACE("applyDynamicChangesGlobal done processed={} dirtyBeforeClear={}", processed, s_dirtyObjects.size());
     s_dirtyObjects.clear();
 }
 
 void TextureUtils::markDynamicDirty(EffectGameObject* obj) {
     if (!obj) {
-        TV_TRACE("markDynamicDirty skip reason=null-object");
         return;
     }
     s_dirtyObjects.insert(obj);
-    TV_TRACE("markDynamicDirty objID={} dirtySize={}", obj->m_objectID, s_dirtyObjects.size());
 }
 
 void TextureUtils::markDynamicDirty(CCArray* objects) {
     if (!objects) {
-        TV_TRACE("markDynamicDirty(array) skip reason=null-array");
         return;
     }
-    TV_TRACE("markDynamicDirty(array) begin count={}", objects->count());
     for (auto obj : CCArrayExt<EffectGameObject*>(objects)) {
         if (obj) markDynamicDirty(obj);
     }
 }
 
 void TextureUtils::clearDynamicCache() {
-    TV_TRACE("clearDynamicCache cacheSize={} dirtySize={} hasLastSettings={}", s_dynamicCache.size(), s_dirtyObjects.size(), s_hasLastSettings);
     s_dynamicCache.clear();
     s_dirtyObjects.clear();
     s_hasLastSettings = false;

@@ -4,7 +4,6 @@
 
 using namespace geode::prelude;
 
-#define TV_TRACE(...) log::info("[TV] " __VA_ARGS__)
 
 // custom settings (only custom settings (maybe (if I’m not lying (but I’m not lying (maybe)))))
 class SpriteSwitchSettingV3 : public SettingBaseValueV3<bool> {
@@ -13,7 +12,6 @@ public:
     std::string m_spr2;
 
     static Result<std::shared_ptr<SettingV3>> parse(std::string const& key, std::string const& modID, matjson::Value const& json) {
-        TV_TRACE("SpriteSwitchSettingV3::parse key='{}' modID='{}'", key, modID);
         auto res = std::make_shared<SpriteSwitchSettingV3>();
         auto root = checkJson(json, "SpriteSwitchSettingV3");
         res->parseBaseProperties(key, modID, root);
@@ -28,7 +26,6 @@ class SpriteSwitchNodeV3 : public SettingValueNodeV3<SpriteSwitchSettingV3> {
 protected:
     bool init(std::shared_ptr<SpriteSwitchSettingV3> setting, float width) {
         if (!SettingValueNodeV3::init(setting, width)) return false;
-        TV_TRACE("SpriteSwitchNodeV3::init key='{}' width={}", setting->getKey(), width);
 
         auto menu = this->getButtonMenu();
         menu->removeAllChildren();
@@ -54,23 +51,19 @@ protected:
         menu->updateLayout();
 
         this->updateState(nullptr);
-        TV_TRACE("SpriteSwitchNodeV3::init done key='{}'", setting->getKey());
         return true;
     }
 
     void onSelectFalse(CCObject*) {
-        TV_TRACE("SpriteSwitchNodeV3::onSelectFalse key='{}'", this->getSetting()->getKey());
         this->setValue(false, nullptr);
     }
     void onSelectTrue(CCObject*) {
-        TV_TRACE("SpriteSwitchNodeV3::onSelectTrue key='{}'", this->getSetting()->getKey());
         this->setValue(true, nullptr);
     }
 
     void updateState(CCNode* invoker) override {
         SettingValueNodeV3::updateState(invoker);
         bool val = this->getValue();
-        TV_TRACE("SpriteSwitchNodeV3::updateState key='{}' value={}", this->getSetting()->getKey(), val);
         auto menu = this->getButtonMenu();
         if (auto btn1 = static_cast<CCMenuItemSpriteExtra*>(menu->getChildByTag(0))) {
             btn1->setColor(val ? ccGRAY : ccWHITE);
@@ -100,7 +93,6 @@ SettingNodeV3* SpriteSwitchSettingV3::createNode(float width) {
 
 $execute {
     if (auto mod = Mod::get()) {
-        TV_TRACE("register custom setting type='sprite-switch'");
         (void)mod->registerCustomSettingType("sprite-switch", &SpriteSwitchSettingV3::parse);
     }
 }
