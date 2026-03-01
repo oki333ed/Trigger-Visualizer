@@ -7,7 +7,7 @@
 ## About
 Trigger Visualizer significantly improves editor readability by replacing default trigger textures with clearer and more informative visuals.
 
-The mod contains **211 unique custom textures** and modifies **79 different trigger types**, covering most commonly used triggers in the editor.
+The mod contains **225 unique custom textures** and modifies **101 different trigger types**, covering most commonly used triggers in the editor.
 
 Originally focused on shader triggers, it now supports a wide range of default triggers:
 
@@ -17,7 +17,7 @@ Originally focused on shader triggers, it now supports a wide range of default t
 - <cp>Logical triggers</c>
 - <cc>Camera triggers</c>
 
-Additionally, **14 trigger types feature dynamic textures**.  
+Additionally, **20 trigger types feature dynamic textures**.  
 These textures **change depending on trigger settings**, making complex setups much easier to read and debug.
 
 Dynamic textures are available for:

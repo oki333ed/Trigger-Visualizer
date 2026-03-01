@@ -8,9 +8,9 @@
 	},
 	"id": "maskagd.shader_visualizer",
 	"name": "Trigger Visualizer",
-	"version": "v2.0.2",
+	"version": "v2.1.0",
 	"developer": "maskagd",
-	"description": "visually enhances triggers",
+	"description": "Visually Enhances Triggers",
 	"resources": {
 		"sprites": [
 			"resources/*.png"
@@ -125,43 +125,35 @@
         },
         "dyn-game": {
             "type": "custom:maskagd.shader_visualizer/sprite-switch",
-            "name": "Gameplay Triggers dynamic texture",
-            "description": "Select style",
+            "name": "Gameplay triggers dynamic texture",
+            "description": "move, rotate, startpos, and gravity triggers",
             "default": true,
             "spr1": "move.png",
             "spr2": "move_direction.png"
         },
-        "dyn-start": {
+        "dyn-logic": {
             "type": "custom:maskagd.shader_visualizer/sprite-switch",
-            "name": "StartPos dynamic texture",
-            "description": "Select style",
+            "name": "Logic triggers dynamic texture",
+            "description": "item, event, collision, spawn and ui triggers",
             "default": true,
-            "spr1": "start.png",
-            "spr2": "startprev.png"
+            "spr1": "ev.png",
+            "spr2": "evland.png"
         },
         "dyn-cam": {
             "type": "custom:maskagd.shader_visualizer/sprite-switch",
             "name": "Cameras dynamic texture",
-            "description": "Select style",
+            "description": "Cameras triggers",
             "default": true,
             "spr1": "offset.png",
             "spr2": "offsetX.png"
         },
-        "dyn-ui": {
+        "dyn-color": {
             "type": "custom:maskagd.shader_visualizer/sprite-switch",
-            "name": "UI dynamic texture",
-            "description": "Select style",
+            "name": "Color dynamic texture",
+            "description": "pulse and color triggers",
             "default": true,
-            "spr1": "ui.png",
-            "spr2": "uiset.png"
-        },
-        "dyn-item": {
-            "type": "custom:maskagd.shader_visualizer/sprite-switch",
-            "name": "Item triggers dynamic texture",
-            "description": "Select style",
-            "default": true,
-            "spr1": "comp.png",
-            "spr2": "comp5.png"
+            "spr1": "col.png",
+            "spr2": "col_pref.png"
         },
         "dot-edit": {
             "type": "custom:maskagd.shader_visualizer/sprite-switch",
@@ -170,14 +162,6 @@
             "default": true,
             "spr1": "edit3a.png",
             "spr2": "edit3d.png"
-        },
-        "dyn-ev": {
-            "type": "custom:maskagd.shader_visualizer/sprite-switch",
-            "name": "Event dynamic texture",
-            "description": "Select style",
-            "default": true,
-            "spr1": "ev.png",
-            "spr2": "evland.png"
         },
         "off-ev": {
             "type": "float",
@@ -193,14 +177,6 @@
                 "slider-step": 1.0,
                 "input": true
             }
-        },
-        "dyn-sfx": {
-            "type": "custom:maskagd.shader_visualizer/sprite-switch",
-            "name": "SFX dynamic texture",
-            "description": "Select style",
-            "default": true,
-            "spr1": "sfx.png",
-            "spr2": "sfx4.png"
         },
         "sfx2": {
             "type": "float",

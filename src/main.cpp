@@ -7,6 +7,7 @@
 #include <Geode/modify/LevelSettingsLayer.hpp>
 #include <Geode/modify/SetupCameraOffsetTrigger.hpp>
 #include <Geode/modify/SetupCameraModePopup.hpp>
+#include <Geode/modify/ColorSelectPopup.hpp>
 
 
 static bool s_dynamicReady = false;
@@ -119,10 +120,8 @@ class $modify(ShowDynamic, EditorUI) {
 
         TextureUtils::g_isToolboxInit = false;
 
-        if (!getSwitchValue("dyn-ev") && !getSwitchValue("dyn-sfx") &&
-            !getSwitchValue("dyn-item") && !getSwitchValue("dyn-ui") &&
-            !getSwitchValue("dyn-start") && !getSwitchValue("dyn-cam") &&
-            !getSwitchValue("dyn-game")) {
+        if (!getSwitchValue("dyn-logic") && !getSwitchValue("dyn-cam") &&
+            !getSwitchValue("dyn-game") && !getSwitchValue("dyn-color")) {
             return true;
         }
 
@@ -215,6 +214,25 @@ class $modify(MySetupCameraOffsetTrigger, SetupCameraOffsetTrigger) {
     }
 };
 
+class $modify(MyColorSelectPopup, ColorSelectPopup) {
+    void applyColorPopupDynamicUpdate() {
+        TextureUtils::markDynamicDirty(this->m_gameObject);
+        TextureUtils::markDynamicDirty(this->m_gameObjects);
+        TextureUtils::markDynamicDirty(this->m_colorObjects);
+        TextureUtils::applyDynamicChangesGlobal();
+    }
+
+    void onClose(cocos2d::CCObject* sender) {
+        ColorSelectPopup::onClose(sender);
+        applyColorPopupDynamicUpdate();
+    }
+
+    void closeColorSelect(cocos2d::CCObject* sender) {
+        ColorSelectPopup::closeColorSelect(sender);
+        applyColorPopupDynamicUpdate();
+    }
+};
+
 class $modify(MyLevelSettingsLayer, LevelSettingsLayer) {
     void onClose(cocos2d::CCObject* sender) {
         LevelSettingsLayer::onClose(sender);
@@ -231,4 +249,3 @@ class $modify(MyLevelSettingsLayer, LevelSettingsLayer) {
         TextureUtils::applyDynamicChangesGlobal();
     }
 };
-

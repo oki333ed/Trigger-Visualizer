@@ -9,10 +9,13 @@
 #include <Geode/binding/CountTriggerGameObject.hpp>
 #include <Geode/binding/CollisionTriggerAction.hpp>
 #include <Geode/binding/SpawnTriggerAction.hpp>
+#include <Geode/binding/ColorActionSprite.hpp>
+#include <Geode/binding/ColorAction.hpp>
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <Geode/utils/general.hpp>
 
 
@@ -47,7 +50,6 @@ void TextureUtils::setObjIcon(EffectGameObject* obj, const std::string& texture)
     else {
     }
 }
-
 static std::optional<int> getIntKey(GameObject* obj, int key) {
     auto layer = LevelEditorLayer::get();
     if (!obj || !layer) {
@@ -113,25 +115,76 @@ static std::uint64_t hashFloat(float value) {
     return bits;
 }
 
+static bool isDynamicColorTriggerID(int objectID) {
+    switch (objectID) {
+        case 899: // color
+        case 29:  // bg
+        case 30:  // ground
+        case 105: // object
+        case 744: // 3dl
+        case 900: // ground2
+        case 915: // line
+            return true;
+        default:
+            return false;
+    }
+}
+
+static const char* getColorTriggerBaseTexture(int objectID) {
+    switch (objectID) {
+        case 29: return "col_bg.png"_spr;
+        case 30: return "col_grnd.png"_spr;
+        case 105: return "col_obj.png"_spr;
+        case 744: return "col_3dl.png"_spr;
+        case 900: return "col_grnd2.png"_spr;
+        case 915: return "col_line.png"_spr;
+        case 899:
+        default:
+            return "col.png"_spr;
+    }
+}
+
+static ccColor3B getColorTriggerTint(EffectGameObject* obj) {
+    if (!obj) return ccColor3B{255, 255, 255};
+
+    auto r = getIntKey(obj, 7);
+    auto g = getIntKey(obj, 8);
+    auto b = getIntKey(obj, 9);
+    if (r && g && b) {
+        auto clampByte = [](int v) -> unsigned char {
+            if (v < 0) return 0;
+            if (v > 255) return 255;
+            return static_cast<unsigned char>(v);
+        };
+        return ccColor3B{
+            clampByte(*r),
+            clampByte(*g),
+            clampByte(*b),
+        };
+    }
+
+    if (obj->m_mainActionSprite) {
+        if (obj->m_mainActionSprite->m_colorAction) {
+            return obj->m_mainActionSprite->m_colorAction->m_color;
+        }
+        return obj->m_mainActionSprite->m_color;
+    }
+    return obj->m_triggerTargetColor;
+}
+
 static bool settingsEqual(const DynamicSettings& a, const DynamicSettings& b) {
-    return a.ev == b.ev &&
-        a.sfx == b.sfx &&
-        a.item == b.item &&
-        a.ui == b.ui &&
+    return a.logic == b.logic &&
         a.dotEdit == b.dotEdit &&
-        a.start == b.start &&
         a.color == b.color &&
         a.cam == b.cam &&
         a.game == b.game &&
+        a.dynColor == b.dynColor &&
         a.offEv == b.offEv;
 }
-static bool dynEv(const DynamicSettings& s) { return s.ev; }
-static bool dynSfx(const DynamicSettings& s) { return s.sfx; }
-static bool dynItem(const DynamicSettings& s) { return s.item; }
-static bool dynUi(const DynamicSettings& s) { return s.ui; }
-static bool dynStart(const DynamicSettings& s) { return s.start; }
+static bool dynLogic(const DynamicSettings& s) { return s.logic; }
 static bool dynCam(const DynamicSettings& s) { return s.cam; }
 static bool dynGame(const DynamicSettings& s) { return s.game; }
+static bool dynColor(const DynamicSettings& s) { return s.dynColor; }
 
 static std::uint64_t sigEvent(EffectGameObject* obj, const DynamicSettings& s) {
     auto ev = typeinfo_cast<EventLinkTrigger*>(obj);
@@ -277,6 +330,25 @@ static std::uint64_t sigGravity(EffectGameObject* obj, const DynamicSettings&) {
     return hashCombine(sig, static_cast<std::uint64_t>(variant + 1));
 }
 
+static std::uint64_t sigPulse(EffectGameObject* obj, const DynamicSettings&) {
+    if (!obj) return 0;
+    std::uint64_t sig = static_cast<std::uint64_t>(obj->m_objectID);
+    sig = hashCombine(sig, static_cast<std::uint64_t>(obj->m_triggerTargetColor.r + 1));
+    sig = hashCombine(sig, static_cast<std::uint64_t>(obj->m_triggerTargetColor.g + 1));
+    sig = hashCombine(sig, static_cast<std::uint64_t>(obj->m_triggerTargetColor.b + 1));
+    return sig;
+}
+
+static std::uint64_t sigColorTrigger(EffectGameObject* obj, const DynamicSettings&) {
+    if (!obj) return 0;
+    auto color = getColorTriggerTint(obj);
+    std::uint64_t sig = static_cast<std::uint64_t>(obj->m_objectID);
+    sig = hashCombine(sig, static_cast<std::uint64_t>(color.r + 1));
+    sig = hashCombine(sig, static_cast<std::uint64_t>(color.g + 1));
+    sig = hashCombine(sig, static_cast<std::uint64_t>(color.b + 1));
+    return sig;
+}
+
 
 
 static std::uint64_t sigCount(EffectGameObject* obj, const DynamicSettings&) {
@@ -351,6 +423,8 @@ enum class DynamicAction {
     Colis,
     Spawn,
     Gravity,
+    Color,
+    Pulse,
     Count,
     OffsetCam,
     RotateCam,
@@ -373,6 +447,8 @@ static const char* dynamicActionName(DynamicAction action) {
         case DynamicAction::Colis: return "Colis";
         case DynamicAction::Spawn: return "Spawn";
         case DynamicAction::Gravity: return "Gravity";
+        case DynamicAction::Color: return "Color";
+        case DynamicAction::Pulse: return "Pulse";
         case DynamicAction::Count: return "Count";
         case DynamicAction::OffsetCam: return "OffsetCam";
         case DynamicAction::RotateCam: return "RotateCam";
@@ -423,6 +499,12 @@ static void applyDynamicAction(DynamicAction action, EffectGameObject* obj, cons
         case DynamicAction::Gravity:
             TextureUtils::updateGravityTexture(typeinfo_cast<EffectGameObject*>(obj));
             break;
+        case DynamicAction::Color:
+            TextureUtils::updateColorTexture(obj);
+            break;
+        case DynamicAction::Pulse:
+            TextureUtils::updatePulseTexture(obj);
+            break;
         case DynamicAction::Count:
             TextureUtils::updateCountTexture(typeinfo_cast<CountTriggerGameObject*>(obj));
             break;
@@ -449,20 +531,28 @@ struct DynamicRule {
 };
 
 static const DynamicRule kDynamicRules[] = {
-    {3604, dynEv, sigEvent, DynamicAction::Event},
-    {3602, dynSfx, sigSfx, DynamicAction::Sfx},
-    {3620, dynItem, sigComp, DynamicAction::Comp},
-    {3619, dynItem, sigEdit, DynamicAction::Edit},
-    {3613, dynUi, sigUi, DynamicAction::Ui},
-    {31, dynStart, sigStart, DynamicAction::Start},
-    {1616, dynGame, sigStopTexture, DynamicAction::Stop},
+    {3604, dynLogic, sigEvent, DynamicAction::Event},
+    {3602, dynGame, sigSfx, DynamicAction::Sfx},
+    {3620, dynLogic, sigComp, DynamicAction::Comp},
+    {3619, dynLogic, sigEdit, DynamicAction::Edit},
+    {3613, dynLogic, sigUi, DynamicAction::Ui},
+    {31, dynGame, sigStart, DynamicAction::Start},
+    {1616, dynLogic, sigStopTexture, DynamicAction::Stop},
     {901, dynGame, sigMove, DynamicAction::Move},
     {1346, dynGame, sigRotate, DynamicAction::Rotate},
-    {1817, dynGame, sigPickup, DynamicAction::Pickup},
-    {1815, dynGame, sigColis, DynamicAction::Colis},
-    {1268, dynGame, sigSpawn, DynamicAction::Spawn},
+    {1817, dynLogic, sigPickup, DynamicAction::Pickup},
+    {1815, dynLogic, sigColis, DynamicAction::Colis},
+    {1268, dynLogic, sigSpawn, DynamicAction::Spawn},
     {2066, dynGame, sigGravity, DynamicAction::Gravity},
-    {1811, dynGame, sigCount, DynamicAction::Count},
+    {899, dynColor, sigColorTrigger, DynamicAction::Color},
+    {29, dynColor, sigColorTrigger, DynamicAction::Color},
+    {30, dynColor, sigColorTrigger, DynamicAction::Color},
+    {105, dynColor, sigColorTrigger, DynamicAction::Color},
+    {744, dynColor, sigColorTrigger, DynamicAction::Color},
+    {900, dynColor, sigColorTrigger, DynamicAction::Color},
+    {915, dynColor, sigColorTrigger, DynamicAction::Color},
+    {1006, dynColor, sigPulse, DynamicAction::Pulse},
+    {1811, dynLogic, sigCount, DynamicAction::Count},
     {1916, dynCam, sigOffsetCam, DynamicAction::OffsetCam},
     {2015, dynCam, sigRotateCam, DynamicAction::RotateCam},
     {1914, dynCam, sigStaticCam, DynamicAction::StaticCam},
@@ -571,6 +661,118 @@ void TextureUtils::updateGravityTexture(EffectGameObject* obj) {
     setObjIcon(obj, tex);
 }
 
+void TextureUtils::updateColorTexture(EffectGameObject* obj) {
+    if (!obj) return;
+    auto color = getColorTriggerTint(obj);
+    const char* baseTex = getColorTriggerBaseTexture(obj->m_objectID);
+
+    auto sprBase = CCSprite::create(baseTex);
+    if (!sprBase) {
+        setObjIcon(obj, baseTex);
+        return;
+    }
+
+    auto sprEmp = CCSprite::create("col_emp.png"_spr);
+    if (!sprEmp) {
+        setObjIcon(obj, baseTex);
+        return;
+    }
+    sprEmp->setColor(color);
+
+    auto baseSize = sprBase->getContentSize();
+    auto empSize = sprEmp->getContentSize();
+    float w = baseSize.width > empSize.width ? baseSize.width : empSize.width;
+    float h = baseSize.height > empSize.height ? baseSize.height : empSize.height;
+    if (w <= 0.f || h <= 0.f) {
+        setObjIcon(obj, baseTex);
+        return;
+    }
+
+    constexpr float kPad = 2.f;
+    float rtW = w + kPad * 2.f;
+    float rtH = h + kPad * 2.f;
+    float cx = rtW * 0.5f;
+    float cy = rtH * 0.5f;
+
+    sprBase->setPosition({cx, cy});
+    sprEmp->setPosition({cx, cy});
+    sprBase->setFlipY(true);
+    sprEmp->setFlipY(true);
+
+    auto rt = CCRenderTexture::create(rtW, rtH);
+    if (!rt) {
+        setObjIcon(obj, baseTex);
+        return;
+    }
+
+    rt->beginWithClear(0, 0, 0, 0);
+    sprBase->visit();
+    sprEmp->visit();
+    rt->end();
+
+    if (auto tex = rt->getSprite()->getTexture()) {
+        ccTexParams tp = {GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
+        tex->setTexParameters(&tp);
+        obj->m_addToNodeContainer = true;
+        obj->setTexture(tex);
+        obj->setTextureRect({kPad, kPad, w, h});
+    } else {
+        setObjIcon(obj, baseTex);
+    }
+}
+
+void TextureUtils::updatePulseTexture(EffectGameObject* obj) {
+    if (!obj) return;
+
+    auto sprPulse = CCSprite::create("pulse.png"_spr);
+    auto sprRing = CCSprite::create("pulse_ring.png"_spr);
+    if (!sprPulse || !sprRing) {
+        setObjIcon(obj, "pulse.png"_spr);
+        return;
+    }
+
+    auto pulseSize = sprPulse->getContentSize();
+    auto ringSize = sprRing->getContentSize();
+    float w = pulseSize.width > ringSize.width ? pulseSize.width : ringSize.width;
+    float h = pulseSize.height > ringSize.height ? pulseSize.height : ringSize.height;
+    if (w <= 0.f || h <= 0.f) {
+        setObjIcon(obj, "pulse.png"_spr);
+        return;
+    }
+
+    constexpr float kPad = 2.f;
+    float rtW = w + kPad * 2.f;
+    float rtH = h + kPad * 2.f;
+    float cx = rtW * 0.5f;
+    float cy = rtH * 0.5f;
+
+    sprPulse->setPosition({cx, cy});
+    sprRing->setPosition({cx, cy});
+    sprPulse->setFlipY(true);
+    sprRing->setFlipY(true);
+    sprRing->setColor(obj->m_triggerTargetColor);
+
+    auto rt = CCRenderTexture::create(rtW, rtH);
+    if (!rt) {
+        setObjIcon(obj, "pulse.png"_spr);
+        return;
+    }
+
+    rt->beginWithClear(0, 0, 0, 0);
+    sprPulse->visit();
+    sprRing->visit();
+    rt->end();
+
+    if (auto tex = rt->getSprite()->getTexture()) {
+        ccTexParams tp = {GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
+        tex->setTexParameters(&tp);
+        obj->m_addToNodeContainer = true;
+        obj->setTexture(tex);
+        obj->setTextureRect({kPad, kPad, w, h});
+    } else {
+        setObjIcon(obj, "pulse.png"_spr);
+    }
+}
 
 void TextureUtils::updateCountTexture(CountTriggerGameObject* obj) {
     if (!obj) return;
@@ -930,15 +1132,12 @@ void TextureUtils::updateEventTexture(EventLinkTrigger* obj, float gap) {
 TextureUtils::DynamicSettings TextureUtils::getDynamicSettings() {
 
     DynamicSettings settings;
-    settings.ev = getSwitchValue("dyn-ev");
-    settings.sfx = getSwitchValue("dyn-sfx");
-    settings.item = getSwitchValue("dyn-item");
-    settings.ui = getSwitchValue("dyn-ui");
-    settings.start = getSwitchValue("dyn-start");
+    settings.logic = getSwitchValue("dyn-logic");
     settings.dotEdit = getSwitchValue("dot-edit");
     settings.cam = getSwitchValue("dyn-cam");
     settings.color = getSwitchValue("color-cam");
     settings.game = getSwitchValue("dyn-game");
+    settings.dynColor = getSwitchValue("dyn-color");
     settings.offEv = Mod::get()->getSettingValue<float>("off-ev");
     return settings;
 }
@@ -961,6 +1160,11 @@ void TextureUtils::applyDynamicUpdates(EffectGameObject* obj, const DynamicSetti
 
 void TextureUtils::applyDynamicUpdatesCached(EffectGameObject* obj, const DynamicSettings& s) {
     if (!obj) {
+        return;
+    }
+
+    if (isDynamicColorTriggerID(obj->m_objectID)) {
+        applyDynamicUpdates(obj, s);
         return;
     }
 
@@ -1059,6 +1263,10 @@ const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils:
     {2923, {"color.png"_spr, "do-shader"}}, {2924, {"screen.png"_spr, "do-shader"}},
     
     // DEFAULT
+    {899, {"col.png"_spr, "do-default"}},
+    {29, {"col_bg.png"_spr, "do-default"}}, {30, {"col_grnd.png"_spr, "do-default"}},
+    {105, {"col_obj.png"_spr, "do-default"}}, {744, {"col_3dl.png"_spr, "do-default"}},
+    {900, {"col_grnd2.png"_spr, "do-default"}}, {915, {"col_line.png"_spr, "do-default"}},
     {901, {"move.png"_spr, "do-default"}}, {1006, {"pulse.png"_spr, "do-default"}},
     {1007, {"alpha.png"_spr, "do-default"}}, {1346, {"rotate.png"_spr, "do-default"}},
     {2067, {"scale.png"_spr, "do-default"}}, {1585, {"animate.png"_spr, "do-default"}},
@@ -1066,7 +1274,7 @@ const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils:
     {3661, {"target.png"_spr, "do-default"}}, {1814, {"followy.png"_spr, "do-default"}},
     {1935, {"timewarp.png"_spr, "do-default"}}, {1932, {"control.png"_spr, "do-default"}},
     {2999, {"mg.png"_spr, "do-default"}}, {3606, {"bgs.png"_spr, "do-default"}},
-    {3612, {"mgs.png"_spr, "do-default"}}, {3613, {"ui.png"_spr, "do-default"}},
+    {3612, {"mgs.png"_spr, "do-default"}}, 
     {2899, {"options.png"_spr, "do-default"}}, {3602, {"sfx.png"_spr, "do-default"}},
     {3603, {"esfx.png"_spr, "do-default"}}, {3600, {"end.png"_spr, "do-default"}},
     {2901, {"gpoff.png"_spr, "do-default"}}, {1917, {"reverse.png"_spr, "do-default"}},
@@ -1074,6 +1282,7 @@ const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils:
     {3029, {"bgc.png"_spr, "do-default"}}, {3030, {"gc.png"_spr, "do-default"}},
     {3031, {"mgc.png"_spr, "do-default"}}, {3604, {"ev.png"_spr, "do-default"}},
     {2066, {"gravity_low.png"_spr, "do-default"}},
+
     // LOGIC
     {1616, {"stop.png"_spr, "do-logic"}}, {1817, {"pickup.png"_spr, "do-logic"}},
     {1268, {"spawn.png"_spr, "do-logic"}}, {1347, {"follow.png"_spr, "do-logic"}},
@@ -1082,7 +1291,7 @@ const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils:
     {1595, {"touch.png"_spr, "do-logic"}}, {3619, {"edit.png"_spr, "do-logic"}},
     {3620, {"comp.png"_spr, "do-logic"}}, {3641, {"pers.png"_spr, "do-logic"}},
     {1812, {"dead.png"_spr, "do-logic"}}, {1815, {"colis.png"_spr, "do-logic"}},
-    {3609, {"advcolis.png"_spr, "do-logic"}},
+    {3609, {"advcolis.png"_spr, "do-logic"}}, {3613, {"ui.png"_spr, "do-logic"}},
 
     // AREA
     {3006, {"amove.png"_spr, "do-area"}}, {3007, {"arotate.png"_spr, "do-area"}},
@@ -1098,3 +1307,6 @@ const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils:
     {3640, {"colisin.png"_spr, "do-colis"}}, {1816, {"colisblock.png"_spr, "do-colis"}},
     {3643, {"colistouch.png"_spr, "do-colis"}}
 };
+
+
+

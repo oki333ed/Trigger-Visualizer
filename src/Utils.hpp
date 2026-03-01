@@ -32,6 +32,8 @@ struct TextureUtils {
     static void updateColisTexture(EffectGameObject* obj);
     static void updateSpawnTexture(EffectGameObject* obj);
     static void updateGravityTexture(EffectGameObject* obj);
+    static void updateColorTexture(EffectGameObject* obj);
+    static void updatePulseTexture(EffectGameObject* obj);
 
     static void updateOffsetCamTexture(CameraTriggerGameObject* obj, bool color);
     static void updateRotateCamTexture(CameraTriggerGameObject* obj, bool color);
@@ -39,7 +41,7 @@ struct TextureUtils {
     static void updateStaticCamTexture(CameraTriggerGameObject* obj, bool color);
 
     struct DynamicSettings {
-        bool ev, sfx, item, ui, dotEdit, start, color, cam, game;
+        bool logic, dotEdit, color, cam, game, dynColor;
         float offEv;
     };
     static DynamicSettings getDynamicSettings();

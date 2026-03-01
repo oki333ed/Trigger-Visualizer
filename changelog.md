@@ -1,8 +1,13 @@
-# v2.0.2
-## Bug Fixes Update
+# v2.1.0
+## Dynamic Texture & Settings Update
+- Added **two new dynamic textures**
+  - Pulse trigger - displays its color
+  - Color trigger - displays its color
+- Updated **Event trigger sprites**
+- Small **settings adjustments**
 - Fixed a **crash on Android** that occurred when enabling Free Mode on portals
 - Fixed an **iOS startup issue** where the game would not launch with the mod enabled
-- General stability improvements
+- Various minor fixes and tweaks
 
 # v2.0.1
 ## Mini patch
