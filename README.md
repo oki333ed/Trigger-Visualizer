@@ -17,6 +17,8 @@ Originally focused on shader triggers, it now supports a wide range of default t
 - <cp>Logical triggers</c>
 - <cc>Camera triggers</c>
 
+Additionally, the mod includes **support for Old Color trigger sprites**, making it easier to edit older levels that rely on the classic trigger visuals.
+
 Additionally, **20 trigger types feature dynamic textures**.  
 These textures **change depending on trigger settings**, making complex setups much easier to read and debug.
 

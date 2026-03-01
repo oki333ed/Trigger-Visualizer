@@ -3,6 +3,7 @@
 - Added **two new dynamic textures**
   - Pulse trigger - displays its color
   - Color trigger - displays its color
+- Added **sprites for old Color triggers**
 - Updated **Event trigger sprites**
 - Small **settings adjustments**
 - Fixed a **crash on Android** that occurred when enabling Free Mode on portals
