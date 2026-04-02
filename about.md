@@ -12,14 +12,17 @@ The mod also includes **Old Color trigger sprites support**, improving compatibi
 
 ---
 
-## Additionally
-- **104 trigger types modified**
-- **245 custom textures included**
-- **24 triggers support dynamic textures**
+## Features
+- **104 trigger types reworked**
+- **247 custom textures included**
+- **25 triggers with dynamic textures**
+    - Item triggers (edit, pickup...), Collision, Spawn, Event
+    - Move, Rotate, Color, Pulse, Gravity, StartPos, SFX, UI
+    - Area move, Area rotate, Area scale, Area tint, Area fade  
+    - Offset cam, Edge cam, Rotate cam, Static cam
 
 ---
 
 ## Notes
 - Affects **editor visuals only**
 - Does **not** change gameplay
-- Designed for better clarity, faster building, and easier debugging

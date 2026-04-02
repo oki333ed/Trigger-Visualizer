@@ -1,3 +1,9 @@
+# v2.2.1
+## Visual Refresh Patch
+- Redrew **shader trigger sprites**
+- New **logo**
+- Updated **mod description**
+
 # v2.2.0
 ## Dynamic Texture Expansion & Improvements
 - Added **new dynamic textures for Area triggers**
