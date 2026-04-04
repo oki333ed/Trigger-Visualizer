@@ -1418,7 +1418,7 @@ const std::unordered_map<int, std::pair<std::string, std::string>> TextureUtils:
     {105, {"col_obj.png"_spr, "do-default"}}, {744, {"col_3dl.png"_spr, "do-default"}},
     {900, {"col_grnd2.png"_spr, "do-default"}}, {915, {"col_line.png"_spr, "do-default"}},
     {901, {"move.png"_spr, "do-default"}}, {1006, {"pulse.png"_spr, "do-default"}},
-    {1007, {"alpha.png"_spr, "do-default"}}, {1346, {"rotate.png"_spr, "do-default"}},
+    {1007, {"alpha.png"_spr, "do-default"}}, {1346, {"rotate.png"_spr, "do-default"}},  
     {2067, {"scale.png"_spr, "do-default"}}, {1585, {"animate.png"_spr, "do-default"}},
     {3016, {"advfollow.png"_spr, "do-default"}}, {3660, {"editadv.png"_spr, "do-default"}},
     {3661, {"target.png"_spr, "do-default"}}, {1814, {"followy.png"_spr, "do-default"}},

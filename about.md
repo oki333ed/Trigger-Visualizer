@@ -1,4 +1,4 @@
-# <c-ff2a2a>T</c><c-ff6a1a>r</c><c-ffb21a>i</c><c-ffe51a>g</c><c-bdff1a>g</c><c-5dff1a>e</c><c-1aff55>r</c> <c-1affb3>V</c><c-1adfff>i</c><c-1a9cff>s</c><c-1a5cff>u</c><c-4b1aff>a</c><c-8f1aff>l</c><c-cf1aff>i</c><c-ff1ae8>z</c><c-ff1aa2>e</c><c-ff1a66>r</c>
+# <c-ff3a2a>.</c><c-ff2a2a>T</c><c-ff6a1a>r</c><c-ffb21a>i</c><c-ffe51a>g</c><c-bdff1a>g</c><c-5dff1a>e</c><c-1aff55>r</c> <c-1affb3>V</c><c-1adfff>i</c><c-1a9cff>s</c><c-1a5cff>u</c><c-4b1aff>a</c><c-8f1aff>l</c><c-cf1aff>i</c><c-ff1ae8>z</c><c-ff1aa2>e</c><c-ff1a66>r</c><c-ff2a8a>.</c>
 
 ## About
 Trigger Visualizer replaces default trigger textures with clearer visuals that **represent trigger behavior directly in the editor**

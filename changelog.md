@@ -1,3 +1,10 @@
+# v2.2.2
+## New logo (ignore patch)
+- Fix some **trigger sprites**
+- New **logo** (again)
+- Small changes
+- Updated **mod description**
+
 # v2.2.1
 ## Visual Refresh Patch
 - Redrew **shader trigger sprites**

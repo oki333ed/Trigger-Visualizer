@@ -7,18 +7,18 @@
         "ios": "2.2081"
 	},
 	"id": "maskagd.shader_visualizer",
-	"name": "Trigger Visualizer",
-	"version": "v2.2.1",
+	"name": ".Trigger Visualizer.",
+	"version": "v2.2.2",
 	"developer": "maskagd",
 	"description": "Visually Enhances Triggers",
 	"resources": {
 		"sprites": [
 			"resources/*.png"
-		]
+		]           
 	},
 	"links": {
         "source": "https://github.com/maskagd/Trigger-Visualizer",
-        "homepage": "https://x.com/maskaGD"
+        "homepage": "https://www.youtube.com/@maskagd"
     },
 	"tags": ["editor", "offline", "customization", "enhancement", "interface"],
     
