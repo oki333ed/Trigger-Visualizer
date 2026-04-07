@@ -7,8 +7,8 @@
         "ios": "2.2081"
 	},
 	"id": "maskagd.shader_visualizer",
-	"name": ".Trigger Visualizer.",
-	"version": "v2.2.2",
+	"name": "\tTrigger Visualizer",
+	"version": "v2.2.3",
 	"developer": "maskagd",
 	"description": "Visually Enhances Triggers",
 	"resources": {
